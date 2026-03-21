@@ -1,0 +1,54 @@
+
+./src/app/(dashboard)/insurance/page.tsx
+4:69  Error: 'CardFooter' is defined but never used.  @typescript-eslint/no-unused-vars
+8:18  Error: 'CheckCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+8:31  Error: 'XCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+11:10  Error: 'provider' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+11:20  Error: 'setProvider' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+17:40  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+23:9  Error: 'remainingCost' is never reassigned. Use 'const' instead.  prefer-const
+28:11  Error: 'copayAmount' is never reassigned. Use 'const' instead.  prefer-const
+33:13  Error: 'excess' is never reassigned. Use 'const' instead.  prefer-const
+
+./src/app/(dashboard)/layout.tsx
+5:65  Error: 'Settings' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/scanner/page.tsx
+8:18  Error: 'Search' is defined but never used.  @typescript-eslint/no-unused-vars
+13:48  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+23:6  Warning: React Hook useCallback has a missing dependency: 'analyzeMedicine'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+50:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(dashboard)/scheme-check/page.tsx
+4:69  Error: 'CardFooter' is defined but never used.  @typescript-eslint/no-unused-vars
+27:50  Error: 'occupation' is defined but never used.  @typescript-eslint/no-unused-vars
+36:42  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+98:32  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(dashboard)/symptom-chat/page.tsx
+20:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/admin/hospitals/page.tsx
+7:10  Error: 'Input' is defined but never used.  @typescript-eslint/no-unused-vars
+26:6  Warning: React Hook useEffect has a missing dependency: 'fetchHospitals'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/api/condition-analyze/route.ts
+52:14  Error: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/medicine-scan/route.ts
+77:14  Error: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/symptom-chat/route.ts
+30:73  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:16  Error: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ui/input.tsx
+4:18  Error: An interface declaring no members is equivalent to its supertype.  @typescript-eslint/no-empty-object-type
+
+./src/lib/supabase/middleware.ts
+18:48  Error: 'options' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/supabase/server.ts
+1:35  Error: 'CookieOptions' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules

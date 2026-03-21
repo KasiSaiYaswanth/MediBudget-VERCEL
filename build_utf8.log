@@ -1,0 +1,410 @@
+﻿  Γû▓ Next.js 14.2.15
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+> [PWA] Compile server
+> [PWA] Compile server
+> [PWA] Compile client (static)
+> [PWA] Auto register service worker with: C:\Users\kotah\.gemini\antigravity\scratch\cariesai-frontend\src\components\MediBudget\medibudget-web\node_modules\next-pwa\register.js
+> [PWA] Service worker: C:\Users\kotah\.gemini\antigravity\scratch\cariesai-frontend\src\components\MediBudget\medibudget-web\public\sw.js
+> [PWA]   url: /sw.js
+> [PWA]   scope: /
+node.exe : <w> [webpack
+.cache.PackFileCacheStr
+ategy] Skipped not 
+serializable cache 
+item 'Compilation/modul
+es|C:\Users\kotah\.gemi
+ni\antigravity\scratch\
+cariesai-frontend\src\c
+omponents\MediBudget\me
+dibudget-web\node_modul
+es\next\dist\build\webp
+ack\loaders\css-loader\
+src\index.js??ruleSet[1
+].rules[14].oneOf[12].u
+se[2]!C:\Users\kotah\.g
+emini\antigravity\scrat
+ch\cariesai-frontend\sr
+c\components\MediBudget
+\medibudget-web\node_mo
+dules\next\dist\build\w
+ebpack\loaders\postcss-
+loader\src\index.js??ru
+leSet[1].rules[14].oneO
+f[12].use[3]!C:\Users\k
+otah\.gemini\antigravit
+y\scratch\cariesai-fron
+tend\src\components\Med
+iBudget\medibudget-web\
+src\app\globals.css': 
+No serializer 
+registered for 
+PostCSSSyntaxError
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (<w> [webpack.   
+ ca...tCSSSyntaxErr    
+or:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+<w> while serializing w
+ebpack/lib/cache/PackFi
+leCacheStrategy.PackCon
+tentItems -> webpack/li
+b/NormalModule -> webpa
+ck/lib/ModuleBuildError
+ -> PostCSSSyntaxError
+Failed to compile.
+
+./src/app/globals.css:3
+:1
+Syntax error: C:\Users\
+kotah\.gemini\antigravi
+ty\scratch\cariesai-fro
+ntend\src\components\Me
+diBudget\medibudget-web
+\src\app\globals.css 
+The `border-border` 
+class does not exist. 
+If `border-border` is 
+a custom class, make 
+sure it is defined 
+within a `@layer` 
+directive.
+
+ [90m 1 | 
+[39m[36m@import[39m 
+[32m"tw-animate-css"[
+39m[33m;[39m
+ [90m 2 | 
+[39m[36m@import[39m 
+[32m"shadcn/tailwind.c
+ss"[39m[33m;[39m
+[1m[31m>[39m[22m[9
+0m 3 | [39m[36m@tailw
+ind[39m 
+base[33m;[39m
+ [90m   | [39m[1m[3
+1m^[39m[22m
+ [90m 4 | [39m[36m@t
+ailwind[39m 
+components[33m;[39m
+ [90m 5 | [39m[36m@t
+ailwind[39m 
+utilities[33m;[39m
+
+./src/app/globals.css
+Syntax error: C:\Users\
+kotah\.gemini\antigravi
+ty\scratch\cariesai-fro
+ntend\src\components\Me
+diBudget\medibudget-web
+\src\app\globals.css 
+The `border-border` 
+class does not exist. 
+If `border-border` is 
+a custom class, make 
+sure it is defined 
+within a `@layer` 
+directive. (3:1)
+
+ [90m 1 | 
+[39m[36m@import[39m 
+[32m"tw-animate-css"[
+39m[33m;[39m
+ [90m 2 | 
+[39m[36m@import[39m 
+[32m"shadcn/tailwind.c
+ss"[39m[33m;[39m
+[1m[31m>[39m[22m[9
+0m 3 | [39m[36m@tailw
+ind[39m 
+base[33m;[39m
+ [90m   | [39m[1m[3
+1m^[39m[22m
+ [90m 4 | [39m[36m@t
+ailwind[39m 
+components[33m;[39m
+ [90m 5 | [39m[36m@t
+ailwind[39m 
+utilities[33m;[39m
+
+    at 
+tryRunOrWebpackError (C
+:\Users\kotah\.gemini\a
+ntigravity\scratch\cari
+esai-frontend\src\compo
+nents\MediBudget\medibu
+dget-web\node_modules\n
+ext\dist\compiled\webpa
+ck\bundle5.js:28:312989
+)
+    at __webpack_requir
+e_module__ (C:\Users\ko
+tah\.gemini\antigravity
+\scratch\cariesai-front
+end\src\components\Medi
+Budget\medibudget-web\n
+ode_modules\next\dist\c
+ompiled\webpack\bundle5
+.js:28:131165)
+    at __nested_webpack
+_require_153728__ (C:\U
+sers\kotah\.gemini\anti
+gravity\scratch\cariesa
+i-frontend\src\componen
+ts\MediBudget\medibudge
+t-web\node_modules\next
+\dist\compiled\webpack\
+bundle5.js:28:130607)
+    at C:\Users\kotah\.
+gemini\antigravity\scra
+tch\cariesai-frontend\s
+rc\components\MediBudge
+t\medibudget-web\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:2
+8:131454
+    at symbolIterator (
+C:\Users\kotah\.gemini\
+antigravity\scratch\car
+iesai-frontend\src\comp
+onents\MediBudget\medib
+udget-web\node_modules\
+next\dist\compiled\neo-
+async\async.js:1:14444)
+    at done (C:\Users\k
+otah\.gemini\antigravit
+y\scratch\cariesai-fron
+tend\src\components\Med
+iBudget\medibudget-web\
+node_modules\next\dist\
+compiled\neo-async\asyn
+c.js:1:14824)
+    at Hook.eval [as 
+callAsync] (eval at 
+create (C:\Users\kotah\
+.gemini\antigravity\scr
+atch\cariesai-frontend\
+src\components\MediBudg
+et\medibudget-web\node_
+modules\next\dist\compi
+led\webpack\bundle5.js:
+13:28858), 
+<anonymous>:15:1)
+    at Hook.CALL_ASYNC_
+DELEGATE [as 
+_callAsync] (C:\Users\k
+otah\.gemini\antigravit
+y\scratch\cariesai-fron
+tend\src\components\Med
+iBudget\medibudget-web\
+node_modules\next\dist\
+compiled\webpack\bundle
+5.js:13:26012)
+    at C:\Users\kotah\.
+gemini\antigravity\scra
+tch\cariesai-frontend\s
+rc\components\MediBudge
+t\medibudget-web\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:2
+8:130328
+    at symbolIterator (
+C:\Users\kotah\.gemini\
+antigravity\scratch\car
+iesai-frontend\src\comp
+onents\MediBudget\medib
+udget-web\node_modules\
+next\dist\compiled\neo-
+async\async.js:1:14402)
+-- inner error --
+Syntax error: C:\Users\
+kotah\.gemini\antigravi
+ty\scratch\cariesai-fro
+ntend\src\components\Me
+diBudget\medibudget-web
+\src\app\globals.css 
+The `border-border` 
+class does not exist. 
+If `border-border` is 
+a custom class, make 
+sure it is defined 
+within a `@layer` 
+directive. (3:1)
+
+ [90m 1 | 
+[39m[36m@import[39m 
+[32m"tw-animate-css"[
+39m[33m;[39m
+ [90m 2 | 
+[39m[36m@import[39m 
+[32m"shadcn/tailwind.c
+ss"[39m[33m;[39m
+[1m[31m>[39m[22m[9
+0m 3 | [39m[36m@tailw
+ind[39m 
+base[33m;[39m
+ [90m   | [39m[1m[3
+1m^[39m[22m
+ [90m 4 | [39m[36m@t
+ailwind[39m 
+components[33m;[39m
+ [90m 5 | [39m[36m@t
+ailwind[39m 
+utilities[33m;[39m
+
+    at 
+Object.<anonymous> (C:\
+Users\kotah\.gemini\ant
+igravity\scratch\caries
+ai-frontend\src\compone
+nts\MediBudget\medibudg
+et-web\node_modules\nex
+t\dist\build\webpack\lo
+aders\css-loader\src\in
+dex.js??ruleSet[1].rule
+s[14].oneOf[12].use[2]!
+C:\Users\kotah\.gemini\
+antigravity\scratch\car
+iesai-frontend\src\comp
+onents\MediBudget\medib
+udget-web\node_modules\
+next\dist\build\webpack
+\loaders\postcss-loader
+\src\index.js??ruleSet[
+1].rules[14].oneOf[12].
+use[3]!C:\Users\kotah\.
+gemini\antigravity\scra
+tch\cariesai-frontend\s
+rc\components\MediBudge
+t\medibudget-web\src\ap
+p\globals.css:1:7)
+    at C:\Users\kotah\.
+gemini\antigravity\scra
+tch\cariesai-frontend\s
+rc\components\MediBudge
+t\medibudget-web\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:2
+8:922493
+    at Hook.eval [as 
+call] (eval at create (
+C:\Users\kotah\.gemini\
+antigravity\scratch\car
+iesai-frontend\src\comp
+onents\MediBudget\medib
+udget-web\node_modules\
+next\dist\compiled\webp
+ack\bundle5.js:13:28636
+), <anonymous>:7:1)
+    at 
+Hook.CALL_DELEGATE [as 
+_call] (C:\Users\kotah\
+.gemini\antigravity\scr
+atch\cariesai-frontend\
+src\components\MediBudg
+et\medibudget-web\node_
+modules\next\dist\compi
+led\webpack\bundle5.js:
+13:25906)
+    at C:\Users\kotah\.
+gemini\antigravity\scra
+tch\cariesai-frontend\s
+rc\components\MediBudge
+t\medibudget-web\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:2
+8:131198
+    at 
+tryRunOrWebpackError (C
+:\Users\kotah\.gemini\a
+ntigravity\scratch\cari
+esai-frontend\src\compo
+nents\MediBudget\medibu
+dget-web\node_modules\n
+ext\dist\compiled\webpa
+ck\bundle5.js:28:312943
+)
+    at __webpack_requir
+e_module__ (C:\Users\ko
+tah\.gemini\antigravity
+\scratch\cariesai-front
+end\src\components\Medi
+Budget\medibudget-web\n
+ode_modules\next\dist\c
+ompiled\webpack\bundle5
+.js:28:131165)
+    at __nested_webpack
+_require_153728__ (C:\U
+sers\kotah\.gemini\anti
+gravity\scratch\cariesa
+i-frontend\src\componen
+ts\MediBudget\medibudge
+t-web\node_modules\next
+\dist\compiled\webpack\
+bundle5.js:28:130607)
+    at C:\Users\kotah\.
+gemini\antigravity\scra
+tch\cariesai-frontend\s
+rc\components\MediBudge
+t\medibudget-web\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:2
+8:131454
+    at symbolIterator (
+C:\Users\kotah\.gemini\
+antigravity\scratch\car
+iesai-frontend\src\comp
+onents\MediBudget\medib
+udget-web\node_modules\
+next\dist\compiled\neo-
+async\async.js:1:14444)
+
+Generated code for C:\U
+sers\kotah\.gemini\anti
+gravity\scratch\cariesa
+i-frontend\src\componen
+ts\MediBudget\medibudge
+t-web\node_modules\next
+\dist\build\webpack\loa
+ders\css-loader\src\ind
+ex.js??ruleSet[1].rules
+[14].oneOf[12].use[2]!C
+:\Users\kotah\.gemini\a
+ntigravity\scratch\cari
+esai-frontend\src\compo
+nents\MediBudget\medibu
+dget-web\node_modules\n
+ext\dist\build\webpack\
+loaders\postcss-loader\
+src\index.js??ruleSet[1
+].rules[14].oneOf[12].u
+se[3]!C:\Users\kotah\.g
+emini\antigravity\scrat
+ch\cariesai-frontend\sr
+c\components\MediBudget
+\medibudget-web\src\app
+\globals.css
+
+Import trace for 
+requested module:
+./src/app/globals.css
+
+
+> Build failed because 
+of webpack errors
