@@ -35,10 +35,22 @@ export default function ForgotPasswordPage() {
       return
     }
 
+    // Determine the correct base URL. Vercel provides NEXT_PUBLIC_VERCEL_URL automatically.
+    const getURL = () => {
+      let url =
+        process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env.
+        (process?.env?.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null) ?? // Automatically set by Vercel.
+        location.origin // Fallback to current browser origin (localhost or deployed)
+      
+      // Make sure we include `https://` when not localhost
+      url = url.includes('http') ? url : `https://${url}`
+      return url
+    }
+
     // Call Supabase to send the reset email
     // It creates a secure, single-use, 15-minute token link
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${location.origin}/auth/callback?next=/reset-password`,
+      redirectTo: `${getURL()}/auth/callback?next=/reset-password`,
     })
 
     if (error) {
