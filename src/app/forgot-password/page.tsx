@@ -32,6 +32,9 @@ export default function ForgotPasswordPage() {
     if (!emailRegex.test(email)) {
       setErrorMsg("Please enter a valid email address.")
       setLoading(false)
+      return
+    }
+
     // Call Supabase to send the reset email
     // It creates a secure, single-use, 15-minute token link
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
