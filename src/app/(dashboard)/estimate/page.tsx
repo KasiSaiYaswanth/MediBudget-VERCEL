@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -57,6 +57,7 @@ const formSchema = z.object({
 export default function CostEstimation() {
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [availableConditions, setAvailableConditions] = useState<string[]>(Object.keys(conditionBaseCosts))
   const supabase = createClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -68,13 +69,49 @@ export default function CostEstimation() {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    const baseCost = conditionBaseCosts[values.condition] || 50000
-    const cityMultiplier = cityMultipliers[values.city] || 1.1 // fallback
-    const tierMultiplier = tierMultipliers[values.hospitalTier] || 1.0
+  useEffect(() => {
+    // Check if we came from symptom-chat
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('from') === 'symptom-chat') {
+      const stored = localStorage.getItem("medibudget_triage_result");
+      if (stored) {
+        try {
+          const triageData = JSON.parse(stored);
+          const conditionName = triageData.predicted_condition;
+          
+          if (conditionName) {
+            // If it's not in the list, add it dynamically
+            if (!availableConditions.includes(conditionName)) {
+               setAvailableConditions(prev => [conditionName, ...prev]);
+            }
+            form.setValue("condition", conditionName);
+            
+            // Map severity to hospital tier appropriately
+            if (triageData.severity === 'emergency') {
+              form.setValue("hospitalTier", "Super-Specialty");
+            } else if (triageData.severity === 'high') {
+              form.setValue("hospitalTier", "Private (Premium)");
+            } else if (triageData.severity === 'low') {
+              form.setValue("hospitalTier", "Private (Economy)");
+            }
+            
+            toast.success("Triage data imported successfully.");
+          }
+        } catch (e) {
+          console.error("Failed to parse triage result", e);
+        }
+      }
+    }
+  }, []);
 
-    const finalEstimate = Math.round(baseCost * cityMultiplier * tierMultiplier)
-    setEstimatedCost(finalEstimate)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Base cost is derived or dynamically assigned for imported unknown conditions
+    const baseCost = conditionBaseCosts[values.condition] || 15000; // reasonable fallback
+    const cityMultiplier = cityMultipliers[values.city] || 1.1; // fallback
+    const tierMultiplier = tierMultipliers[values.hospitalTier] || 1.0;
+
+    const finalEstimate = Math.round(baseCost * cityMultiplier * tierMultiplier);
+    setEstimatedCost(finalEstimate);
     
     // Save search history
     try {
@@ -135,7 +172,7 @@ export default function CostEstimation() {
                   {...form.register("condition")}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  {Object.keys(conditionBaseCosts).map(condition => (
+                  {availableConditions.map(condition => (
                     <option key={condition} value={condition} className="bg-background text-foreground">{condition}</option>
                   ))}
                 </select>

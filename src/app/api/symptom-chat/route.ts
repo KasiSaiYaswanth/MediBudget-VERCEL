@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { SYMTPOM_KB, getEmergencyKeywords } from '@/lib/symptom-intelligence'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
@@ -13,13 +14,16 @@ export async function POST(req: Request) {
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
-        reply: "This is a mock response. Setup GEMINI_API_KEY in .env.local to activate the AI symptom checker.",
+        reply: "This is a mock response because GEMINI_API_KEY is missing. In a real environment, I would carefully assess your symptoms.",
         symptomData: {
-          symptoms: ["headache", "fever"],
-          severity: "moderate",
+          symptoms: ["mock symptom"],
+          severity: "low",
           predicted_condition: "Mock condition",
           confidence: 0.8,
-          recommended_doctor: "General Physician"
+          recommended_doctor: "General Physician",
+          suggested_next_steps: "This is a mock next step.",
+          hospital_type: "Clinic",
+          is_complete: true
         }
       })
     }
@@ -32,25 +36,50 @@ export async function POST(req: Request) {
       parts: [{ text: msg.content }]
     })) : []
 
+    // Calculate conversation turns to know when to conclude
+    const userMessageCount = history.filter((msg: any) => msg.role === 'user').length + 1; // +1 for the current message
+
+    const systemInstruction = `You are "MediBot", an AI Symptom Triage assistant for MediBudget.
+    
+    PERSONA AND TONE:
+    - You are a calm, highly empathetic, and thoughtful healthcare triage assistant.
+    - Always acknowledge the user's pain or discomfort before asking questions (e.g., "I'm sorry to hear you're feeling that way.", "That sounds uncomfortable.").
+    - Use clear, friendly, human-like, non-jargon language.
+    - NEVER provide a final definitive medical diagnosis.
+    - NEVER prescribe medication dosages.
+    - ALWAYS remind them this is for guidance, not professional advice.
+
+    TRIAGE PROCESS:
+    1. **Clarify**: If symptoms are vague, ask 1-2 clarifying questions (e.g., duration, severity, accompanying symptoms).
+    2. **Analyze**: Rely on typical medical knowledge to identify potential conditions. Reference this knowledge base sample if relevant: ${JSON.stringify(SYMTPOM_KB.conditions.map(c => c.name))}
+    3. **Conclude**: Once you have enough information (usually after 2-3 user messages), conclude the triage. At this point, the user has sent ${userMessageCount} messages. If userMessageCount >= 3, you MUST conclude the triage now.
+    
+    EMERGENCY DETECTION:
+    If the user mentions any of these: ${getEmergencyKeywords().join(", ")}, or if you detect a life-threatening emergency, you MUST immediately warn them to seek emergency medical attention or call an ambulance (108 in India). Set severity to "emergency" in the JSON.
+    
+    JSON OUTPUT (ONLY WHEN CONCLUDING):
+    When the assessment is complete, and you have enough information (or if userMessageCount >= 3), append a structured JSON block at the very end of your response inside a block formatted EXACTLY like this:
+    ===JSON===
+    {
+      "symptoms": ["list of up to 5 identified symptoms"],
+      "severity": "low|moderate|high|emergency",
+      "predicted_condition": "String name of most likely condition (e.g., 'Tension Headache')",
+      "confidence": 0.85,
+      "recommended_doctor": "Specialist type (e.g., Cardiologist, General Physician)",
+      "suggested_next_steps": "Short actionable advice (e.g., Rest, monitor 24h).",
+      "hospital_type": "Outpatient Clinic|Hospital|Emergency Room",
+      "is_complete": true
+    }
+    ===/JSON===
+    
+    IMPORTANT: 
+    - Only output the ===JSON=== block when the triage is FINISHED (i.e. you have enough info, or reached 3+ turns). 
+    - If you are still asking questions, do NOT output the JSON block.
+    - Always provide your empathetic conversational reply BEFORE the JSON block.`;
+
     const chat = model.startChat({
       history,
-      systemInstruction: `You are an AI Symptom Triage assistant for MediBudget India.
-      Your goal is to assess symptoms provided by the user in a conversational manner.
-      If symptoms are incomplete or vague, ask clarifying questions (up to 3 turns maximum).
-      If severe emergency symptoms (chest pain, stroke symptoms, severe bleeding) are detected, you must prominently warn the user to call 108 immediately.
-      
-      When the assessment is complete, append a structured JSON block at the very end of your response inside a block formatted EXACTLY like this:
-      ===JSON===
-      {
-        "symptoms": ["list of identified symptoms"],
-        "severity": "low|moderate|high|emergency",
-        "predicted_condition": "String name of most likely condition or classification",
-        "confidence": 0.85,
-        "recommended_doctor": "Specialist type (e.g., Cardiologist, General Physician)"
-      }
-      ===/JSON===
-      
-      Always provide an empathetic textual reply before the structured JSON.`
+      systemInstruction
     })
 
     const result = await chat.sendMessage([{text: message}])
