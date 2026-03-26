@@ -12,9 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your-gemini-key') {
       return NextResponse.json({
-        reply: "This is a mock response because GEMINI_API_KEY is missing. In a real environment, I would carefully assess your symptoms.",
+        reply: "This is a mock response because a valid GEMINI_API_KEY is missing. In a real environment, I would carefully assess your symptoms.",
         symptomData: {
           symptoms: ["mock symptom"],
           severity: "low",

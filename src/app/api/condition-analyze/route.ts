@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Description is required' }, { status: 400 })
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your-gemini-key') {
       // Mock mode if no key provided yet
       return NextResponse.json({
         conditions: [
