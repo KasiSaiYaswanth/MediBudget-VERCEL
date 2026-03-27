@@ -28,8 +28,6 @@ export async function POST(req: Request) {
       })
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
-
     // Build chat history
     const history = conversationHistory ? conversationHistory.map((msg: any) => ({
       role: msg.role === "user" ? "user" : "model",
@@ -77,9 +75,31 @@ export async function POST(req: Request) {
     - If you are still asking questions, do NOT output the JSON block.
     - Always provide your empathetic conversational reply BEFORE the JSON block.`;
 
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: systemInstruction 
+    })
+
+    // Gemini requires the history to start with a 'user' message and strictly alternate.
+    if (history.length > 0 && history[0].role === 'model') {
+      history.shift()
+    }
+    
+    let validHistory: any[] = []
+    for (const msg of history) {
+      if (validHistory.length === 0) {
+        if (msg.role === 'user') validHistory.push(msg)
+      } else {
+        if (validHistory[validHistory.length - 1].role !== msg.role) {
+          validHistory.push(msg)
+        } else {
+          validHistory[validHistory.length - 1].parts[0].text += "\n\n" + msg.parts[0].text
+        }
+      }
+    }
+
     const chat = model.startChat({
-      history,
-      systemInstruction
+      history: validHistory
     })
 
     const result = await chat.sendMessage([{text: message}])
