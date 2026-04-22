@@ -54,11 +54,15 @@ export function getUserLocation(): Promise<GeolocationPosition> {
  * Reverse geocode coordinates using OpenStreetMap Nominatim (free, no API key)
  */
 export async function reverseGeocode(lat: number, lon: number): Promise<LocationResult> {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`,
-    { headers: { "Accept-Language": "en" } }
-  );
-  if (!res.ok) throw new Error("Reverse geocoding failed.");
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/location-service`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ action: "detect", lat, lon })
+  });
+  if (!res.ok) throw new Error("Reverse geocoding failed via backend service.");
   const data = await res.json();
   const addr = data.address || {};
   return {
@@ -146,24 +150,16 @@ export async function fetchNearbyHospitals(
   lon: number,
   radiusKm: number = 10
 ): Promise<NearbyHospital[]> {
-  const radiusM = radiusKm * 1000;
-  const query = `
-    [out:json][timeout:15];
-    (
-      node["amenity"="hospital"](around:${radiusM},${lat},${lon});
-      way["amenity"="hospital"](around:${radiusM},${lat},${lon});
-      relation["amenity"="hospital"](around:${radiusM},${lat},${lon});
-    );
-    out center tags;
-  `;
-
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/location-service`, {
     method: "POST",
-    body: `data=${encodeURIComponent(query)}`,
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ action: "nearby", lat, lon, radiusKm })
   });
 
-  if (!res.ok) throw new Error("Failed to fetch nearby hospitals.");
+  if (!res.ok) throw new Error("Failed to fetch nearby hospitals via backend service.");
   const data = await res.json();
 
   const hospitals: NearbyHospital[] = (data.elements || [])

@@ -270,6 +270,15 @@ const ConditionAnalyzer = ({
                             let tests = Math.round(match.baseCost.tests * cityMultiplier * hospitalMultiplier);
                             let medicines = Math.round(match.baseCost.medicines * cityMultiplier * hospitalMultiplier);
                             let treatment = Math.round(match.baseCost.treatment * cityMultiplier * hospitalMultiplier);
+                            
+                            // Business Logic Requirements: Only show tests if severe or definitive need (fractures/major)
+                            const isSevere = result.severity === 'high' || result.severity === 'urgent';
+                            const mandatoryTestConditions = ['fracture', 'cardiac', 'cancer', 'transplant', 'knee', 'spine', 'appendix', 'hernia', 'csection', 'kidney', 'neuro'];
+                            
+                            if (!isSevere && !mandatoryTestConditions.includes(c.value)) {
+                              tests = 0;
+                            }
+                            
                             let total = consultation + tests + medicines + treatment;
                             
                             if (total > 0 && total < 500) {

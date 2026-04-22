@@ -14,6 +14,9 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import {
   getUserLocation,
   reverseGeocode,
@@ -37,6 +40,20 @@ const hospitalTypeColors: Record<string, string> = {
   corporate: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
   trust: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
 };
+
+const markerIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+const userIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
 const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, onDismiss }: Props) => {
   const [status, setStatus] = useState<"idle" | "detecting" | "loading" | "done" | "error">("idle");
@@ -178,6 +195,35 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
                 <X className="h-4 w-4" />
               </Button>
             </div>
+            
+            {/* Map View */}
+            <div className="h-48 w-full mt-4 rounded-xl overflow-hidden border border-border z-0">
+              <MapContainer 
+                center={[location.latitude, location.longitude]} 
+                zoom={13} 
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                
+                {/* User Marker */}
+                <Marker position={[location.latitude, location.longitude]} icon={userIcon}>
+                  <Popup>You are here</Popup>
+                </Marker>
+                
+                {/* Hospital Markers */}
+                {hospitals.map((h) => (
+                  <Marker key={h.id} position={[h.lat, h.lon]} icon={markerIcon}>
+                    <Popup>
+                      <strong>{h.name}</strong><br/>
+                      {h.typeLabel}
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -225,6 +271,14 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
                           {h.distance} km
                         </span>
                       </div>
+                      
+                      {/* Explicit Baseline Cost Injection */}
+                      <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-3 text-[10px] font-medium text-slate-500">
+                        <span>Est. Consultation: <strong className="text-emerald-700">
+                          {h.type === 'government' ? 'Free (₹10-50)' : h.type === 'corporate' ? '₹800+' : h.type === 'trust' ? '₹100 - ₹300' : '₹400 - ₹800'}
+                        </strong></span>
+                      </div>
+                      
                     </div>
                     {selectedId === h.id ? (
                       <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
