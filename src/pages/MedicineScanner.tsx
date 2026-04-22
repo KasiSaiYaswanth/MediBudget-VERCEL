@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Camera, Search, Pill, AlertTriangle, Info, ChevronLeft, Filter, ShieldCheck, ScanLine } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Camera, Search, Pill, AlertTriangle, Info, ChevronLeft, Filter, ShieldCheck, ScanLine, ArrowRight, DollarSign } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { searchMedicines, getCategories, getMedicinesByCategory, type MedicineInfo } from "@/lib/medicineService";
@@ -23,6 +23,7 @@ const MedicineScanner = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [scanResult, setScanResult] = useState<ScannedMedicine | null>(null);
   const [capturedImage, setCapturedImage] = useState<string>("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     getCategories().then(setCategories);
@@ -46,10 +47,21 @@ const MedicineScanner = () => {
       }
       setResults(data);
       if (data.length === 1) setSelected(data[0]);
+      if (data.length === 0) {
+        import("sonner").then(({ toast }) => toast.info("No medicines found. Try a different name or generic drug name."));
+      }
     } finally {
       setSearching(false);
     }
   };
+
+  // Live search on input
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return; }
+    const timer = setTimeout(() => handleSearch(), 300);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   const handleCategoryChange = async (cat: string) => {
     setSelectedCategory(cat === "all" ? "" : cat);
@@ -264,11 +276,36 @@ const MedicineScanner = () => {
                                 ))}
                               </ul>
                             </div>
-                            <div className="pt-2 border-t">
+                            <div className="pt-2 border-t space-y-3">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm font-semibold text-foreground">Estimated Price</span>
                                 <span className="text-sm font-bold text-primary">{selected.price_range}</span>
                               </div>
+                              {selected.alternatives && selected.alternatives.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-semibold text-foreground mb-2">💊 Cheaper Alternatives</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {selected.alternatives.map((alt) => (
+                                      <button
+                                        key={alt}
+                                        onClick={() => { setQuery(alt); setSelected(null); }}
+                                        className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full hover:bg-emerald-100 transition-colors"
+                                      >
+                                        {alt}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <Button
+                                variant="hero"
+                                className="w-full"
+                                onClick={() => navigate('/estimate', { state: { description: `Need treatment cost for ${selected.name} (${selected.generic_name}). Used for: ${selected.uses.join(', ')}.` } })}
+                              >
+                                <DollarSign className="h-4 w-4 mr-2" />
+                                Find Cost Estimation for This Medicine
+                                <ArrowRight className="h-4 w-4 ml-2" />
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>
