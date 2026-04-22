@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 import { Link, useNavigate } from "react-router-dom";
 import { Pill, Mail, Lock, ArrowRight, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { checkIsAdmin } from "@/lib/adminService";
 
@@ -198,8 +197,11 @@ const Login = () => {
             disabled={loading || isLocked}
             onClick={async () => {
               setLoading(true);
-              const { error } = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.origin,
+              const { error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                  redirectTo: window.location.origin,
+                }
               });
               if (error) {
                 toast.error("Google sign-in failed. Please try again.");
