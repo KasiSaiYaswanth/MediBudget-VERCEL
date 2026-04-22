@@ -31,49 +31,65 @@ export function getUserLocation(): Promise<GeolocationPosition> {
     navigator.geolocation.getCurrentPosition(resolve, (err) => {
       switch (err.code) {
         case err.PERMISSION_DENIED:
-          reject(new Error("Location permission denied. Please allow location access."));
+          reject(new Error("Location permission denied. Please allow location access in your browser settings."));
           break;
         case err.POSITION_UNAVAILABLE:
-          reject(new Error("Location information is unavailable."));
+          reject(new Error("Location information is unavailable. Please ensure GPS is enabled."));
           break;
         case err.TIMEOUT:
           reject(new Error("Location request timed out. Please try again."));
           break;
         default:
-          reject(new Error("An unknown error occurred."));
+          reject(new Error("An unknown error occurred while getting location."));
       }
     }, {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 12000,
       maximumAge: 300000, // cache for 5 min
     });
   });
 }
 
+// Simple in-memory cache for geocoding results
+const geocodeCache = new Map<string, LocationResult>();
+
 /**
- * Reverse geocode coordinates using OpenStreetMap Nominatim (free, no API key)
+ * Reverse geocode coordinates using OpenStreetMap Nominatim (free, CORS-enabled, no API key)
  */
 export async function reverseGeocode(lat: number, lon: number): Promise<LocationResult> {
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/location-service`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
-    body: JSON.stringify({ action: "detect", lat, lon })
-  });
-  if (!res.ok) throw new Error("Reverse geocoding failed via backend service.");
+  const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
+  if (geocodeCache.has(cacheKey)) {
+    return geocodeCache.get(cacheKey)!;
+  }
+
+  // Try Nominatim directly - it's CORS-enabled for browser use
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`,
+    {
+      headers: {
+        "Accept-Language": "en",
+        "User-Agent": "MediBudget-App/1.0 (healthcare cost estimation)"
+      }
+    }
+  );
+
+  if (!res.ok) throw new Error("Reverse geocoding failed. Please check your internet connection.");
+
   const data = await res.json();
   const addr = data.address || {};
-  return {
+  
+  const result: LocationResult = {
     latitude: lat,
     longitude: lon,
-    city: addr.city || addr.town || addr.village || addr.county || "",
-    locality: addr.suburb || addr.neighbourhood || addr.hamlet || "",
+    city: addr.city || addr.town || addr.municipality || addr.village || addr.county || addr.state_district || "",
+    locality: addr.suburb || addr.neighbourhood || addr.quarter || addr.hamlet || addr.road || "",
     state: addr.state || "",
     postalCode: addr.postcode || "",
     displayName: data.display_name || "",
   };
+
+  geocodeCache.set(cacheKey, result);
+  return result;
 }
 
 /**
@@ -107,8 +123,11 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
     name.includes("district") ||
     name.includes("taluk") ||
     name.includes("area hospital") ||
+    name.includes("civil hospital") ||
+    name.includes("primary health") ||
     name.includes("phc") ||
-    name.includes("chc")
+    name.includes("chc") ||
+    name.includes("esi")
   ) {
     return { type: "government", typeLabel: "Government Hospital" };
   }
@@ -117,7 +136,8 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
     name.includes("trust") ||
     name.includes("charitable") ||
     name.includes("mission") ||
-    name.includes("seva")
+    name.includes("seva") ||
+    name.includes("charity")
   ) {
     return { type: "trust", typeLabel: "Trust / Charitable Hospital" };
   }
@@ -134,6 +154,10 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
     name.includes("care hospital") ||
     name.includes("global hospital") ||
     name.includes("continental") ||
+    name.includes("rainbow") ||
+    name.includes("kims") ||
+    name.includes("nims") ||
+    name.includes("aiims") ||
     name.includes("corporate")
   ) {
     return { type: "corporate", typeLabel: "Corporate Hospital" };
@@ -143,51 +167,96 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
 }
 
 /**
- * Fetch nearby hospitals using OpenStreetMap Overpass API (free, no API key)
+ * Fetch nearby hospitals using OpenStreetMap Overpass API (free, CORS-enabled, no API key needed)
+ * Calls directly from browser to avoid edge function latency/restrictions.
  */
 export async function fetchNearbyHospitals(
   lat: number,
   lon: number,
   radiusKm: number = 10
 ): Promise<NearbyHospital[]> {
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/location-service`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
-    body: JSON.stringify({ action: "nearby", lat, lon, radiusKm })
-  });
+  const radiusM = radiusKm * 1000;
 
-  if (!res.ok) throw new Error("Failed to fetch nearby hospitals via backend service.");
-  const data = await res.json();
+  // Overpass QL query - fetch hospitals, clinics, and health centres
+  const query = `
+    [out:json][timeout:25];
+    (
+      node["amenity"="hospital"](around:${radiusM},${lat},${lon});
+      way["amenity"="hospital"](around:${radiusM},${lat},${lon});
+      relation["amenity"="hospital"](around:${radiusM},${lat},${lon});
+      node["amenity"="clinic"](around:${radiusM},${lat},${lon});
+      way["amenity"="clinic"](around:${radiusM},${lat},${lon});
+    );
+    out center tags;
+  `;
 
-  const hospitals: NearbyHospital[] = (data.elements || [])
-    .filter((el: any) => el.tags?.name)
-    .map((el: any) => {
-      const hLat = el.lat || el.center?.lat;
-      const hLon = el.lon || el.center?.lon;
-      if (!hLat || !hLon) return null;
+  // Try multiple Overpass API mirrors for reliability
+  const mirrors = [
+    "https://overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
+  ];
 
-      const dist = haversineKm(lat, lon, hLat, hLon);
-      const { type, typeLabel } = classifyHospital(el.tags);
-      const addr = el.tags["addr:full"] || [el.tags["addr:street"], el.tags["addr:city"] || el.tags["addr:district"]].filter(Boolean).join(", ");
+  let lastError: Error | null = null;
 
-      return {
-        id: String(el.id),
-        name: el.tags.name,
-        distance: Math.round(dist * 10) / 10,
-        type,
-        typeLabel,
-        lat: hLat,
-        lon: hLon,
-        address: addr || "Address not available",
-      } as NearbyHospital;
-    })
-    .filter(Boolean)
-    .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
+  for (const mirror of mirrors) {
+    try {
+      const res = await fetch(mirror, {
+        method: "POST",
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: AbortSignal.timeout(20000), // 20s timeout per mirror
+      });
 
-  return hospitals;
+      if (!res.ok) {
+        lastError = new Error(`Overpass returned ${res.status}`);
+        continue;
+      }
+
+      const data = await res.json();
+
+      const hospitals: NearbyHospital[] = (data.elements || [])
+        .filter((el: Record<string, unknown>) => {
+          const tags = el.tags as Record<string, string> | undefined;
+          return tags?.name;
+        })
+        .map((el: Record<string, unknown>) => {
+          const tags = el.tags as Record<string, string>;
+          const hLat = (el.lat as number) || (el.center as { lat: number } | undefined)?.lat;
+          const hLon = (el.lon as number) || (el.center as { lon: number } | undefined)?.lon;
+          if (!hLat || !hLon) return null;
+
+          const dist = haversineKm(lat, lon, hLat, hLon);
+          const { type, typeLabel } = classifyHospital(tags);
+          const addr =
+            tags["addr:full"] ||
+            [tags["addr:street"], tags["addr:city"] || tags["addr:district"]]
+              .filter(Boolean)
+              .join(", ") ||
+            "";
+
+          return {
+            id: String(el.id),
+            name: tags.name,
+            distance: Math.round(dist * 10) / 10,
+            type,
+            typeLabel,
+            lat: hLat,
+            lon: hLon,
+            address: addr || "Address not available",
+          } as NearbyHospital;
+        })
+        .filter(Boolean)
+        .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
+
+      return hospitals;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error("Unknown error");
+      continue; // try next mirror
+    }
+  }
+
+  throw lastError || new Error("Failed to fetch nearby hospitals. Please check your internet connection.");
 }
 
 /**
@@ -202,12 +271,10 @@ export function matchCityToList(
   const ds = detectedState.toLowerCase().trim();
 
   // Exact label match
-  const exact = citiesList.find(
-    (c) => c.label.toLowerCase() === dc
-  );
+  const exact = citiesList.find((c) => c.label.toLowerCase() === dc);
   if (exact) return exact.value;
 
-  // Partial match
+  // Partial match — city name contains detected or detected contains city name
   const partial = citiesList.find(
     (c) =>
       dc.includes(c.label.toLowerCase()) ||
@@ -215,7 +282,11 @@ export function matchCityToList(
   );
   if (partial) return partial.value;
 
-  // State match - pick first city in that state
+  // Value key match
+  const valueMatch = citiesList.find((c) => dc.includes(c.value));
+  if (valueMatch) return valueMatch.value;
+
+  // State match — pick first city in that state
   const stateMatch = citiesList.find(
     (c) => c.state.toLowerCase() === ds
   );
