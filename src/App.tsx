@@ -11,7 +11,7 @@ import MedicineScanner from "./pages/MedicineScanner";
 import CostEstimation from "./pages/CostEstimation";
 import SchemeChecker from "./pages/SchemeChecker";
 import EstimationHistory from "./pages/EstimationHistory";
-import SymptomChecker from "./pages/SymptomChecker";
+import SymptomAssistantUI from "./pages/SymptomAssistantUI";
 import InsuranceCalculator from "./pages/InsuranceCalculator";
 import HealthDashboard from "./pages/HealthDashboard";
 import NotFound from "./pages/NotFound";
@@ -69,7 +69,7 @@ const App = () => (
           <Route path="/estimate" element={<ProtectedRoute><CostEstimation /></ProtectedRoute>} />
           <Route path="/schemes" element={<ProtectedRoute><SchemeChecker /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><EstimationHistory /></ProtectedRoute>} />
-          <Route path="/symptoms" element={<ProtectedRoute><SymptomChecker /></ProtectedRoute>} />
+          <Route path="/symptoms" element={<ProtectedRoute><SymptomAssistantUI /></ProtectedRoute>} />
           <Route path="/insurance" element={<ProtectedRoute><InsuranceCalculator /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
