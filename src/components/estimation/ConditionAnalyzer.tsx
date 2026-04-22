@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { conditions as conditionsList } from "@/pages/CostEstimation";
 
 interface DetectedCondition {
   value: string;
@@ -33,6 +34,8 @@ interface Props {
   onConditionSelected: (conditionValue: string) => void;
   initialDescription?: string;
   initialCondition?: string;
+  cityMultiplier?: number;
+  hospitalMultiplier?: number;
 }
 
 const severityConfig = {
@@ -44,7 +47,13 @@ const severityConfig = {
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/condition-analyze`;
 
-const ConditionAnalyzer = ({ onConditionSelected, initialDescription, initialCondition }: Props) => {
+const ConditionAnalyzer = ({ 
+  onConditionSelected, 
+  initialDescription, 
+  initialCondition,
+  cityMultiplier = 1,
+  hospitalMultiplier = 1
+}: Props) => {
   const [description, setDescription] = useState(initialDescription || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -251,6 +260,39 @@ const ConditionAnalyzer = ({ onConditionSelected, initialDescription, initialCon
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Cost Breakdown Injection */}
+                          {(() => {
+                            const match = conditionsList.find((x) => x.value === c.value);
+                            if (!match) return null;
+                            
+                            let consultation = Math.round(match.baseCost.consultation * cityMultiplier * hospitalMultiplier);
+                            let tests = Math.round(match.baseCost.tests * cityMultiplier * hospitalMultiplier);
+                            let medicines = Math.round(match.baseCost.medicines * cityMultiplier * hospitalMultiplier);
+                            let treatment = Math.round(match.baseCost.treatment * cityMultiplier * hospitalMultiplier);
+                            let total = consultation + tests + medicines + treatment;
+                            
+                            if (total > 0 && total < 500) {
+                              const diff = 500 - total;
+                              consultation += diff;
+                              total = 500;
+                            }
+                            
+                            return (
+                              <div className="mt-3 pt-3 border-t border-border flex flex-col gap-1.5">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[11px] font-semibold text-foreground uppercase tracking-wider">Estimated Cost</span>
+                                  <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{total.toLocaleString()}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                                  {consultation > 0 && <span>Fees: ₹{consultation}</span>}
+                                  {tests > 0 && <span>Tests: ₹{tests}</span>}
+                                  {medicines > 0 && <span>Meds: ₹{medicines}</span>}
+                                  {treatment > 0 && <span>Treatment: ₹{treatment}</span>}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </motion.button>
                       ))}
                     </div>

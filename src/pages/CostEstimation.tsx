@@ -128,7 +128,7 @@ const hospitalTypes = [
   { value: "trust", label: "Trust / Charitable Hospital", multiplier: 0.5 },
 ];
 
-const conditions = [
+export const conditions = [
   { value: "fever", label: "Fever / Common Cold", baseCost: { consultation: 300, tests: 500, medicines: 200, treatment: 0 },
     recommendedTests: ["Complete Blood Count (CBC)", "ESR", "Widal Test", "Dengue NS1 Antigen", "Malaria Parasite Test", "Urine Routine"],
     recommendedMedicines: ["Paracetamol 500mg", "Cetirizine 10mg", "Azithromycin 500mg", "Amoxicillin 500mg", "ORS Sachets", "Vitamin C tablets"] },
@@ -418,6 +418,8 @@ const CostEstimation = () => {
                     onConditionSelected={(val) => setCondition(val)}
                     initialDescription={initialDescription}
                     initialCondition={chatbotCondition}
+                    cityMultiplier={cities.find((x) => x.value === city)?.multiplier || 1}
+                    hospitalMultiplier={hospitalTypes.find((x) => x.value === hospitalType)?.multiplier || 1}
                   />
 
                   <div className="relative flex items-center gap-2 py-1">
