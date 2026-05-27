@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, MapPin, Building2, Stethoscope, Calculator } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -332,14 +332,14 @@ const CostEstimation = () => {
                     <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
                     <SelectContent className="max-h-80">
                       {sortedStates.map((state) => (
-                        <div key={state}>
-                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                        <SelectGroup key={state}>
+                          <SelectLabel className="sticky top-0 bg-popover/95 py-1.5 pl-4 text-xs font-bold text-muted-foreground border-b border-border/40 z-10 backdrop-blur-md">
                             {state}
-                          </div>
+                          </SelectLabel>
                           {cityGroups[state].map((c) => (
                             <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                           ))}
-                        </div>
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
