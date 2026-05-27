@@ -230,7 +230,7 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
             </div>
             
             {/* Map View */}
-            <div className="h-48 w-full mt-4 rounded-xl overflow-hidden border border-border z-0">
+            <div className="h-48 w-full mt-4 rounded-xl overflow-hidden border border-border relative z-0">
               <MapContainer 
                 center={[location.latitude, location.longitude]} 
                 zoom={13} 

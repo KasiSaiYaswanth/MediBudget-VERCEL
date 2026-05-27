@@ -437,7 +437,91 @@ export async function fetchNearbyHospitals(
     throw lastError;
   }
 
-  // 3. Deduplicate elements by name and proximity (<200m) to remove duplicate nodes/ways from OSM
+  // 3. Fallback/supplement with OpenStreetMap Nominatim Search API if we found very few hospitals
+  if (hospitals.length < 5) {
+    try {
+      console.log("Found few hospitals via Overpass. Supplementing with Nominatim Search API...");
+      
+      const searchTerms = ["hospital", "clinic", "medical"];
+      const searchPromises = searchTerms.map(async (term) => {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${term}&lat=${lat}&lon=${lon}&limit=15&addressdetails=1`;
+        const res = await fetch(url, {
+          headers: {
+            "Accept-Language": "en",
+            "User-Agent": "MediBudget-App/1.0 (healthcare search)"
+          }
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+        return [];
+      });
+
+      const searchResultsArray = await Promise.all(searchPromises);
+      const searchResults = searchResultsArray.flat();
+
+      for (const item of searchResults) {
+        const itemLat = parseFloat(item.lat);
+        const itemLon = parseFloat(item.lon);
+        if (isNaN(itemLat) || isNaN(itemLon)) continue;
+
+        const dist = haversineKm(lat, lon, itemLat, itemLon);
+        // Only include if within search radius
+        if (dist <= radiusKm) {
+          const name = item.display_name.split(",")[0] || "Medical Center";
+          
+          // Classify based on name and category tags
+          const addr = item.display_name || "";
+          const isGovt = 
+            addr.toLowerCase().includes("govt") || 
+            addr.toLowerCase().includes("government") || 
+            name.toLowerCase().includes("govt") || 
+            name.toLowerCase().includes("government") ||
+            addr.toLowerCase().includes("district hospital") ||
+            name.toLowerCase().includes("district hospital");
+            
+          const isCorporate = 
+            name.toLowerCase().includes("apollo") || 
+            name.toLowerCase().includes("fortis") || 
+            name.toLowerCase().includes("max") || 
+            name.toLowerCase().includes("medanta") || 
+            name.toLowerCase().includes("manipal") ||
+            name.toLowerCase().includes("narayana") ||
+            name.toLowerCase().includes("yashoda") ||
+            name.toLowerCase().includes("care hospital");
+
+          let type: NearbyHospital["type"] = "private";
+          let typeLabel = "Private Hospital";
+
+          if (isGovt) {
+            type = "government";
+            typeLabel = "Government Hospital";
+          } else if (isCorporate) {
+            type = "corporate";
+            typeLabel = "Corporate Hospital";
+          } else if (name.toLowerCase().includes("trust") || name.toLowerCase().includes("charitable")) {
+            type = "trust";
+            typeLabel = "Trust / Charitable Hospital";
+          }
+
+          hospitals.push({
+            id: `nom-${item.place_id || Math.random()}`,
+            name: name,
+            distance: Math.round(dist * 10) / 10,
+            type,
+            typeLabel,
+            lat: itemLat,
+            lon: itemLon,
+            address: addr.split(",").slice(1).join(",").trim() || "Address not available",
+          });
+        }
+      }
+    } catch (nomErr) {
+      console.warn("Nominatim Search API fallback failed:", nomErr);
+    }
+  }
+
+  // 4. Deduplicate elements by name and proximity (<200m) to remove duplicate nodes/ways from OSM
   const uniqueHospitals: NearbyHospital[] = [];
   for (const h of hospitals) {
     const isDuplicate = uniqueHospitals.some(
