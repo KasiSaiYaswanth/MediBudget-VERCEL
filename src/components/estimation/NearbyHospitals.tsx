@@ -29,7 +29,7 @@ import { toast } from "sonner";
 
 interface Props {
   citiesList: Array<{ value: string; label: string; state: string; multiplier: number }>;
-  onLocationDetected: (cityValue: string, locality: string) => void;
+  onLocationDetected: (cityName: string, stateName: string, locality: string) => void;
   onHospitalSelected: (hospitalType: string) => void;
   onDismiss: () => void;
 }
@@ -109,15 +109,9 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
 
       // Auto-match city if reverse geocoding succeeded
       if (!geocodeError && loc && loc.city) {
-        const matchedCity = matchCityToList(loc.city, loc.state, citiesList);
-        if (matchedCity) {
-          onLocationDetected(matchedCity, loc.locality);
-          const locationName = [loc.city, loc.state].filter(Boolean).join(", ");
-          toast.success(`Location detected: ${locationName}`);
-        } else {
-          const locationName = [loc.city, loc.state].filter(Boolean).join(", ");
-          toast.info(`Detected ${locationName} — please select nearest city manually.`);
-        }
+        onLocationDetected(loc.city, loc.state || "", loc.locality || "");
+        const locationName = [loc.city, loc.state].filter(Boolean).join(", ");
+        toast.success(`Location detected: ${locationName}`);
       } else {
         toast.info("Location coordinates detected — please select your city manually.");
       }

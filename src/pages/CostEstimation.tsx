@@ -10,6 +10,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import CostResults from "@/components/estimation/CostResults";
 import NearbyHospitals from "@/components/estimation/NearbyHospitals";
 import ConditionAnalyzer from "@/components/estimation/ConditionAnalyzer";
+import { matchCityToList } from "@/lib/locationService";
 
 const cities = [
   // Andhra Pradesh
@@ -211,6 +212,7 @@ const CostEstimation = () => {
   const navState = location.state as { chatbotCondition?: string; description?: string } | null;
 
   const [step, setStep] = useState(1);
+  const [dynamicCities, setDynamicCities] = useState(cities);
   const [city, setCity] = useState("");
   const [hospitalType, setHospitalType] = useState("");
   const [condition, setCondition] = useState("");
@@ -222,8 +224,17 @@ const CostEstimation = () => {
 
   const totalSteps = 3;
 
+  // Group cities by state dynamically for better UX
+  const cityGroups = dynamicCities.reduce((acc, cityItem) => {
+    if (!acc[cityItem.state]) acc[cityItem.state] = [];
+    acc[cityItem.state].push(cityItem);
+    return acc;
+  }, {} as Record<string, typeof cities>);
+
+  const sortedStates = Object.keys(cityGroups).sort();
+
   const calculate = () => {
-    const c = cities.find((x) => x.value === city);
+    const c = dynamicCities.find((x) => x.value === city);
     const h = hospitalTypes.find((x) => x.value === hospitalType);
     const cond = conditions.find((x) => x.value === condition);
 
@@ -317,10 +328,28 @@ const CostEstimation = () => {
                 <CardContent className="space-y-4">
                   {showLocationDetector && (
                     <NearbyHospitals
-                      citiesList={cities}
-                      onLocationDetected={(cityValue, loc) => {
-                        setCity(cityValue);
-                        setLocality(loc);
+                      citiesList={dynamicCities}
+                      onLocationDetected={(cityName, stateName, loc) => {
+                        const matchedCity = matchCityToList(cityName, stateName, dynamicCities);
+                        if (matchedCity) {
+                          setCity(matchedCity);
+                          setLocality(loc);
+                        } else {
+                          // Dynamic insertion on the fly!
+                          const value = cityName.toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
+                          const exists = dynamicCities.some(x => x.value === value);
+                          if (!exists) {
+                            const newCity = {
+                              value,
+                              label: cityName,
+                              state: stateName || "India",
+                              multiplier: 1.0
+                            };
+                            setDynamicCities(prev => [...prev, newCity]);
+                          }
+                          setCity(value);
+                          setLocality(loc);
+                        }
                       }}
                       onHospitalSelected={(type) => {
                         setHospitalType(type);
@@ -418,7 +447,7 @@ const CostEstimation = () => {
                     onConditionSelected={(val) => setCondition(val)}
                     initialDescription={initialDescription}
                     initialCondition={chatbotCondition}
-                    cityMultiplier={cities.find((x) => x.value === city)?.multiplier || 1}
+                    cityMultiplier={dynamicCities.find((x) => x.value === city)?.multiplier || 1}
                     hospitalMultiplier={hospitalTypes.find((x) => x.value === hospitalType)?.multiplier || 1}
                   />
 
