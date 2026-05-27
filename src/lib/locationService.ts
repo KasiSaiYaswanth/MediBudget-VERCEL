@@ -372,6 +372,7 @@ export async function fetchNearbyHospitals(
   }
 
   // 2. Fetch from OpenStreetMap Overpass API (highly comprehensive search)
+  // We exclude amenity=doctors here to prevent massive footprint bloating in high density areas.
   const query = `
     [out:json][timeout:25];
     (
@@ -389,9 +390,6 @@ export async function fetchNearbyHospitals(
       way["amenity"="clinic"](around:${radiusM},${lat},${lon});
       node["healthcare"="clinic"](around:${radiusM},${lat},${lon});
       way["healthcare"="clinic"](around:${radiusM},${lat},${lon});
-      
-      node["amenity"="doctors"](around:${radiusM},${lat},${lon});
-      way["amenity"="doctors"](around:${radiusM},${lat},${lon});
     );
     out center tags;
   `;
@@ -427,37 +425,37 @@ export async function fetchNearbyHospitals(
       const elements = data.elements || [];
 
       const osmHospitals: NearbyHospital[] = elements
-        .filter((el: Record<string, unknown>) => {
-          const tags = el.tags as Record<string, string> | undefined;
-          return tags?.name;
-        })
-        .map((el: Record<string, unknown>) => {
-          const tags = el.tags as Record<string, string>;
-          const hLat = (el.lat as number) || (el.center as { lat: number } | undefined)?.lat;
-          const hLon = (el.lon as number) || (el.center as { lon: number } | undefined)?.lon;
-          if (!hLat || !hLon) return null;
+         .filter((el: Record<string, unknown>) => {
+           const tags = el.tags as Record<string, string> | undefined;
+           return tags?.name;
+         })
+         .map((el: Record<string, unknown>) => {
+           const tags = el.tags as Record<string, string>;
+           const hLat = (el.lat as number) || (el.center as { lat: number } | undefined)?.lat;
+           const hLon = (el.lon as number) || (el.center as { lon: number } | undefined)?.lon;
+           if (!hLat || !hLon) return null;
 
-          const dist = haversineKm(lat, lon, hLat, hLon);
-          const { type, typeLabel } = classifyHospital(tags);
-          const addr =
-            tags["addr:full"] ||
-            [tags["addr:street"], tags["addr:city"] || tags["addr:district"]]
-              .filter(Boolean)
-              .join(", ") ||
-            "";
+           const dist = haversineKm(lat, lon, hLat, hLon);
+           const { type, typeLabel } = classifyHospital(tags);
+           const addr =
+             tags["addr:full"] ||
+             [tags["addr:street"], tags["addr:city"] || tags["addr:district"]]
+               .filter(Boolean)
+               .join(", ") ||
+             "";
 
-          return {
-            id: String(el.id),
-            name: tags.name,
-            distance: Math.round(dist * 10) / 10,
-            type,
-            typeLabel,
-            lat: hLat,
-            lon: hLon,
-            address: addr || "Address not available",
-          } as NearbyHospital;
-        })
-        .filter(Boolean) as NearbyHospital[];
+           return {
+             id: String(el.id),
+             name: tags.name,
+             distance: Math.round(dist * 10) / 10,
+             type,
+             typeLabel,
+             lat: hLat,
+             lon: hLon,
+             address: addr || "Address not available",
+           } as NearbyHospital;
+         })
+         .filter(Boolean) as NearbyHospital[];
 
       hospitals.push(...osmHospitals);
       osmSuccess = true;
@@ -475,13 +473,20 @@ export async function fetchNearbyHospitals(
   }
 
   // 3. Fallback/supplement with OpenStreetMap Nominatim Search API if we found very few hospitals
+  // We use a local bounding-box query (viewbox with bounded=1) to query local elements precisely
   if (hospitals.length < 5) {
     try {
-      console.log("Found few hospitals via Overpass. Supplementing with Nominatim Search API...");
+      console.log("Found few hospitals via Overpass. Supplementing with Nominatim Local Search API...");
       
       const searchTerms = ["hospital", "clinic", "medical"];
+      const viewboxHalfSpan = 0.25; // approx 25km span bounding box
+      const left = lon - viewboxHalfSpan;
+      const right = lon + viewboxHalfSpan;
+      const top = lat + viewboxHalfSpan;
+      const bottom = lat - viewboxHalfSpan;
+
       const searchPromises = searchTerms.map(async (term) => {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${term}&lat=${lat}&lon=${lon}&limit=15&addressdetails=1`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${term}&viewbox=${left},${top},${right},${bottom}&bounded=1&limit=25&addressdetails=1`;
         const res = await fetch(url, {
           headers: {
             "Accept-Language": "en",

@@ -328,7 +328,7 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
         <Card className="shadow-card">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              No hospitals found within 10 km. Please select your hospital type manually.
+              No hospitals found nearby. Please select your hospital type manually.
             </p>
           </CardContent>
         </Card>
