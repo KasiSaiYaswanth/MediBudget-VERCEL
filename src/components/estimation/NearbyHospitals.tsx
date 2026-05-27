@@ -71,22 +71,55 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
       const { latitude, longitude } = pos.coords;
 
       setStatus("loading");
-      const [loc, hosp] = await Promise.all([
+      
+      let loc: LocationResult | null = null;
+      let hosp: NearbyHospital[] = [];
+      let geocodeError = false;
+
+      const results = await Promise.allSettled([
         reverseGeocode(latitude, longitude),
         fetchNearbyHospitals(latitude, longitude, 10),
       ]);
+
+      if (results[0].status === "fulfilled") {
+        loc = results[0].value;
+      } else {
+        geocodeError = true;
+        console.warn("Reverse geocoding failed:", results[0].reason);
+        loc = {
+          latitude,
+          longitude,
+          city: "",
+          locality: "",
+          state: "",
+          postalCode: "",
+          displayName: "Coordinates detected",
+        };
+      }
+
+      if (results[1].status === "fulfilled") {
+        hosp = results[1].value;
+      } else {
+        console.warn("Fetching nearby hospitals failed:", results[1].reason);
+      }
 
       setLocation(loc);
       setHospitals(hosp);
       setStatus("done");
 
-      // Auto-match city
-      const matchedCity = matchCityToList(loc.city, loc.state, citiesList);
-      if (matchedCity) {
-        onLocationDetected(matchedCity, loc.locality);
-        toast.success(`Location detected: ${loc.city}, ${loc.state}`);
+      // Auto-match city if reverse geocoding succeeded
+      if (!geocodeError && loc && loc.city) {
+        const matchedCity = matchCityToList(loc.city, loc.state, citiesList);
+        if (matchedCity) {
+          onLocationDetected(matchedCity, loc.locality);
+          const locationName = [loc.city, loc.state].filter(Boolean).join(", ");
+          toast.success(`Location detected: ${locationName}`);
+        } else {
+          const locationName = [loc.city, loc.state].filter(Boolean).join(", ");
+          toast.info(`Detected ${locationName} — please select nearest city manually.`);
+        }
       } else {
-        toast.info(`Detected ${loc.city}, ${loc.state} — please select nearest city manually.`);
+        toast.info("Location coordinates detected — please select your city manually.");
       }
     } catch (err: any) {
       setStatus("error");

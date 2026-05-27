@@ -21,6 +21,7 @@ export interface NearbyHospital {
 
 /**
  * Request user's GPS location via HTML5 Geolocation API
+ * Falls back to low accuracy if high accuracy fails or times out
  */
 export function getUserLocation(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
@@ -28,25 +29,44 @@ export function getUserLocation(): Promise<GeolocationPosition> {
       reject(new Error("Geolocation is not supported by your browser."));
       return;
     }
-    navigator.geolocation.getCurrentPosition(resolve, (err) => {
-      switch (err.code) {
-        case err.PERMISSION_DENIED:
-          reject(new Error("Location permission denied. Please allow location access in your browser settings."));
-          break;
-        case err.POSITION_UNAVAILABLE:
-          reject(new Error("Location information is unavailable. Please ensure GPS is enabled."));
-          break;
-        case err.TIMEOUT:
-          reject(new Error("Location request timed out. Please try again."));
-          break;
-        default:
-          reject(new Error("An unknown error occurred while getting location."));
-      }
-    }, {
+
+    const options = {
       enableHighAccuracy: true,
-      timeout: 12000,
+      timeout: 6000, // 6s timeout for fast high-accuracy attempt
       maximumAge: 300000, // cache for 5 min
-    });
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      resolve,
+      (err) => {
+        // Fallback to low-accuracy (faster, IP/Wifi based) if high accuracy fails
+        console.warn("High-accuracy geolocation failed, falling back to standard accuracy...", err.message);
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          (err2) => {
+            switch (err2.code) {
+              case err2.PERMISSION_DENIED:
+                reject(new Error("Location permission denied. Please allow location access in your browser settings."));
+                break;
+              case err2.POSITION_UNAVAILABLE:
+                reject(new Error("Location information is unavailable. Please ensure GPS is enabled."));
+                break;
+              case err2.TIMEOUT:
+                reject(new Error("Location request timed out. Please try again."));
+                break;
+              default:
+                reject(new Error("An unknown error occurred while getting location."));
+            }
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000,
+          }
+        );
+      },
+      options
+    );
   });
 }
 
@@ -55,6 +75,7 @@ const geocodeCache = new Map<string, LocationResult>();
 
 /**
  * Reverse geocode coordinates using OpenStreetMap Nominatim (free, CORS-enabled, no API key)
+ * with robust client-side BigDataCloud fallback in case of Nominatim rate limits/errors.
  */
 export async function reverseGeocode(lat: number, lon: number): Promise<LocationResult> {
   const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
@@ -62,34 +83,64 @@ export async function reverseGeocode(lat: number, lon: number): Promise<Location
     return geocodeCache.get(cacheKey)!;
   }
 
-  // Try Nominatim directly - it's CORS-enabled for browser use
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`,
-    {
-      headers: {
-        "Accept-Language": "en",
-        "User-Agent": "MediBudget-App/1.0 (healthcare cost estimation)"
+  try {
+    // Try Nominatim first
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`,
+      {
+        headers: {
+          "Accept-Language": "en",
+          "User-Agent": "MediBudget-App/1.0 (healthcare cost estimation)"
+        }
       }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      
+      const result: LocationResult = {
+        latitude: lat,
+        longitude: lon,
+        city: addr.city || addr.town || addr.municipality || addr.village || addr.county || addr.state_district || "",
+        locality: addr.suburb || addr.neighbourhood || addr.quarter || addr.hamlet || addr.road || "",
+        state: addr.state || "",
+        postalCode: addr.postcode || "",
+        displayName: data.display_name || "",
+      };
+
+      geocodeCache.set(cacheKey, result);
+      return result;
     }
-  );
+  } catch (e) {
+    console.warn("Nominatim reverse geocoding failed. Trying BigDataCloud fallback...", e);
+  }
 
-  if (!res.ok) throw new Error("Reverse geocoding failed. Please check your internet connection.");
+  // Try BigDataCloud fallback (free, no API key required for client-side geolocation, extremely fast)
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+    );
 
-  const data = await res.json();
-  const addr = data.address || {};
-  
-  const result: LocationResult = {
-    latitude: lat,
-    longitude: lon,
-    city: addr.city || addr.town || addr.municipality || addr.village || addr.county || addr.state_district || "",
-    locality: addr.suburb || addr.neighbourhood || addr.quarter || addr.hamlet || addr.road || "",
-    state: addr.state || "",
-    postalCode: addr.postcode || "",
-    displayName: data.display_name || "",
-  };
+    if (!res.ok) throw new Error("Reverse geocoding API returned an error status.");
 
-  geocodeCache.set(cacheKey, result);
-  return result;
+    const data = await res.json();
+    const result: LocationResult = {
+      latitude: lat,
+      longitude: lon,
+      city: data.city || data.locality || "",
+      locality: data.locality || "",
+      state: data.principalSubdivision || "",
+      postalCode: data.postcode || "",
+      displayName: [data.locality, data.city, data.principalSubdivision, data.countryName].filter(Boolean).join(", "),
+    };
+
+    geocodeCache.set(cacheKey, result);
+    return result;
+  } catch (e) {
+    console.error("BigDataCloud reverse geocoding fallback failed:", e);
+    throw new Error("Failed to detect city from coordinates. Please select your nearest city manually.");
+  }
 }
 
 /**
@@ -270,27 +321,36 @@ export function matchCityToList(
   const dc = detectedCity.toLowerCase().trim();
   const ds = detectedState.toLowerCase().trim();
 
+  // Guard against empty city string matching everything due to partial matching
+  if (!dc) {
+    return null;
+  }
+
   // Exact label match
   const exact = citiesList.find((c) => c.label.toLowerCase() === dc);
   if (exact) return exact.value;
 
-  // Partial match — city name contains detected or detected contains city name
-  const partial = citiesList.find(
-    (c) =>
-      dc.includes(c.label.toLowerCase()) ||
-      c.label.toLowerCase().includes(dc)
-  );
-  if (partial) return partial.value;
+  // Exact value/id match
+  const exactValue = citiesList.find((c) => c.value.toLowerCase() === dc);
+  if (exactValue) return exactValue.value;
 
-  // Value key match
-  const valueMatch = citiesList.find((c) => dc.includes(c.value));
-  if (valueMatch) return valueMatch.value;
+  // Fuzzy / Partial match with minimum length check to prevent erroneous matching
+  if (dc.length >= 3) {
+    const partial = citiesList.find(
+      (c) =>
+        dc.includes(c.label.toLowerCase()) ||
+        c.label.toLowerCase().includes(dc)
+    );
+    if (partial) return partial.value;
 
-  // State match — pick first city in that state
-  const stateMatch = citiesList.find(
-    (c) => c.state.toLowerCase() === ds
-  );
-  if (stateMatch) return stateMatch.value;
+    const valueMatch = citiesList.find((c) => dc.includes(c.value.toLowerCase()));
+    if (valueMatch) return valueMatch.value;
+  }
+
+  // We explicitly DO NOT automatically match the first city in the state as a fallback,
+  // because cost multipliers (economy tiers vs premium cities) vary drastically within
+  // the same state (e.g., Mumbai vs Nagpur). Silently setting the first city in the state
+  // results in highly inaccurate estimations. Instead, we let the user manually select the closest city.
 
   return null;
 }
