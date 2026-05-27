@@ -289,6 +289,125 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
   return { type: "private", typeLabel: "Private Hospital" };
 }
 
+let googleMapsLoadedPromise: Promise<void> | null = null;
+
+function loadGoogleMapsScript(apiKey: string): Promise<void> {
+  if (googleMapsLoadedPromise) return googleMapsLoadedPromise;
+
+  googleMapsLoadedPromise = new Promise((resolve, reject) => {
+    if (typeof window === "undefined") {
+      reject(new Error("DOM is not available"));
+      return;
+    }
+    if ((window as any).google?.maps?.places) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      console.log("Google Maps Places Library successfully loaded.");
+      resolve();
+    };
+    script.onerror = (err) => {
+      console.error("Failed to load Google Maps script:", err);
+      googleMapsLoadedPromise = null;
+      reject(err);
+    };
+    document.head.appendChild(script);
+  });
+
+  return googleMapsLoadedPromise;
+}
+
+function searchNearbyHospitalsWithGoogle(
+  lat: number,
+  lon: number,
+  radiusM: number
+): Promise<NearbyHospital[]> {
+  return new Promise((resolve) => {
+    try {
+      const elem = document.createElement("div");
+      const service = new (window as any).google.maps.places.PlacesService(elem);
+
+      const request = {
+        location: new (window as any).google.maps.LatLng(lat, lon),
+        radius: radiusM,
+        type: "hospital",
+      };
+
+      service.nearbySearch(request, (results: any[], status: any) => {
+        if (status !== (window as any).google.maps.places.PlacesServiceStatus.OK || !results) {
+          console.warn("Google Places nearbySearch failed or returned no results. Status:", status);
+          resolve([]);
+          return;
+        }
+
+        const googleHospitals: NearbyHospital[] = results.map((place) => {
+          const pLat = place.geometry.location.lat();
+          const pLon = place.geometry.location.lng();
+          const dist = haversineKm(lat, lon, pLat, pLon);
+          
+          let type: NearbyHospital["type"] = "private";
+          let typeLabel = "Private Hospital";
+          
+          const nameLower = (place.name || "").toLowerCase();
+          
+          if (
+            nameLower.includes("government") ||
+            nameLower.includes("govt") ||
+            nameLower.includes("district") ||
+            nameLower.includes("taluk") ||
+            nameLower.includes("esi") ||
+            nameLower.includes("general hospital")
+          ) {
+            type = "government";
+            typeLabel = "Government Hospital";
+          } else if (
+            nameLower.includes("apollo") ||
+            nameLower.includes("fortis") ||
+            nameLower.includes("max ") ||
+            nameLower.includes("medanta") ||
+            nameLower.includes("manipal") ||
+            nameLower.includes("narayana") ||
+            nameLower.includes("yashoda") ||
+            nameLower.includes("care hospital")
+          ) {
+            type = "corporate";
+            typeLabel = "Corporate Hospital";
+          } else if (
+            nameLower.includes("trust") ||
+            nameLower.includes("charitable") ||
+            nameLower.includes("mission")
+          ) {
+            type = "trust";
+            typeLabel = "Trust / Charitable Hospital";
+          }
+
+          return {
+            id: `gplace-${place.place_id}`,
+            name: place.name || "Medical Facility",
+            distance: Math.round(dist * 10) / 10,
+            type,
+            typeLabel,
+            lat: pLat,
+            lon: pLon,
+            address: place.vicinity || "Address not available",
+          };
+        });
+
+        resolve(googleHospitals);
+      });
+    } catch (e) {
+      console.error("Google Places search call failed:", e);
+      resolve([]);
+    }
+  });
+}
+
 /**
  * Fetch nearby hospitals using OpenStreetMap Overpass API (free, CORS-enabled, no API key needed)
  * combined with a local custom hospital database fallback/merge from Supabase.
@@ -300,6 +419,21 @@ export async function fetchNearbyHospitals(
 ): Promise<NearbyHospital[]> {
   const radiusM = radiusKm * 1000;
   let hospitals: NearbyHospital[] = [];
+
+  // Try to use Google Places API first if an API key is available
+  const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (googleApiKey) {
+    try {
+      console.log("Google Maps API key detected. Querying via Google Places Service...");
+      await loadGoogleMapsScript(googleApiKey);
+      const googleResults = await searchNearbyHospitalsWithGoogle(lat, lon, radiusM);
+      if (googleResults && googleResults.length > 0) {
+        hospitals.push(...googleResults);
+      }
+    } catch (gErr) {
+      console.warn("Failed to load Google Maps script or search nearby:", gErr);
+    }
+  }
 
   // 1. Fetch from local custom Supabase database first (extremely fast & accurate)
   try {
