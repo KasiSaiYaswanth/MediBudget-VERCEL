@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-interface SchemeResult {
+export interface SchemeResult {
   name: string;
   eligible: boolean;
   coverage: string;
@@ -16,7 +16,7 @@ interface SchemeResult {
   details?: string;
 }
 
-const indianStates = [
+export const indianStates = [
   "Andhra Pradesh",
   "Arunachal Pradesh",
   "Assam",
@@ -50,7 +50,7 @@ const indianStates = [
 ];
 
 // State-specific health schemes
-const stateSchemes: Record<string, { name: string; maxIncome: number; coverage: string; details: string }[]> = {
+export const stateSchemes: Record<string, { name: string; maxIncome: number; coverage: string; details: string }[]> = {
   "Andhra Pradesh": [
     { name: "YSR Aarogyasri", maxIncome: 500000, coverage: "₹5,00,000 per family/year", details: "Covers 2,446 procedures in empanelled hospitals. Cashless treatment for BPL & eligible families. White ration card holders eligible." },
     { name: "NTR Vaidya Seva", maxIncome: 500000, coverage: "₹2,50,000 per family/year", details: "For unorganized sector workers and BPL families in AP. Covers hospitalization and surgeries." },

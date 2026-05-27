@@ -12,7 +12,7 @@ import NearbyHospitals from "@/components/estimation/NearbyHospitals";
 import ConditionAnalyzer from "@/components/estimation/ConditionAnalyzer";
 import { matchCityToList } from "@/lib/locationService";
 
-const cities = [
+export const cities = [
   // Andhra Pradesh
   { value: "visakhapatnam", label: "Visakhapatnam", state: "Andhra Pradesh", multiplier: 1.05 },
   { value: "vijayawada", label: "Vijayawada", state: "Andhra Pradesh", multiplier: 1.0 },
@@ -44,8 +44,8 @@ const cities = [
   { value: "madurai", label: "Madurai", state: "Tamil Nadu", multiplier: 1.0 },
   { value: "tiruchirappalli", label: "Tiruchirappalli", state: "Tamil Nadu", multiplier: 0.95 },
   { value: "salem", label: "Salem", state: "Tamil Nadu", multiplier: 0.9 },
-  { value: "tirunelveli", label: "Tirunelveli", state: "Tamil Nadu", multiplier: 0.9 },
-  { value: "vellore", label: "Vellore", state: "Tamil Nadu", multiplier: 1.0 },
+  { value: "tirunelveli", label: "Tirunelveli", state: "Tamil Nadu", multiplier: 0.95 },
+  { value: "vellore", label: "Vellore", state: "Tamil Nadu", multiplier: 1.05 },
   // Karnataka
   { value: "bangalore", label: "Bengaluru", state: "Karnataka", multiplier: 1.35 },
   { value: "mysuru", label: "Mysuru", state: "Karnataka", multiplier: 1.0 },
@@ -114,15 +114,15 @@ const cities = [
 ];
 
 // Group cities by state for better UX
-const cityGroups = cities.reduce((acc, city) => {
+export const cityGroups = cities.reduce((acc, city) => {
   if (!acc[city.state]) acc[city.state] = [];
   acc[city.state].push(city);
   return acc;
 }, {} as Record<string, typeof cities>);
 
-const sortedStates = Object.keys(cityGroups).sort();
+export const sortedStates = Object.keys(cityGroups).sort();
 
-const hospitalTypes = [
+export const hospitalTypes = [
   { value: "government", label: "Government Hospital", multiplier: 0.3 },
   { value: "private", label: "Private Hospital", multiplier: 1.0 },
   { value: "corporate", label: "Corporate Hospital", multiplier: 1.8 },

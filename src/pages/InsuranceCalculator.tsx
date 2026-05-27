@@ -22,7 +22,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-const insuranceProviders = [
+export const insuranceProviders = [
   { value: "star_health", label: "Star Health Insurance" },
   { value: "icici_lombard", label: "ICICI Lombard" },
   { value: "hdfc_ergo", label: "HDFC Ergo" },
@@ -45,14 +45,14 @@ const insuranceProviders = [
   { value: "other", label: "Other Provider" },
 ];
 
-const policyTypes = [
+export const policyTypes = [
   { value: "individual", label: "Individual" },
   { value: "family_floater", label: "Family Floater" },
   { value: "group", label: "Group / Employer" },
   { value: "top_up", label: "Super Top-Up" },
 ];
 
-const coveragePresets = [
+export const coveragePresets = [
   { value: "60", label: "60%" },
   { value: "70", label: "70%" },
   { value: "75", label: "75%" },
@@ -61,7 +61,7 @@ const coveragePresets = [
   { value: "100", label: "100%" },
 ];
 
-const claimLimitPresets = [
+export const claimLimitPresets = [
   { value: "100000", label: "₹1 Lakh" },
   { value: "200000", label: "₹2 Lakh" },
   { value: "300000", label: "₹3 Lakh" },
@@ -71,7 +71,7 @@ const claimLimitPresets = [
   { value: "5000000", label: "₹50 Lakh" },
 ];
 
-interface CalculationResult {
+export interface CalculationResult {
   treatmentCost: number;
   coveragePercent: number;
   maxClaimLimit: number;
