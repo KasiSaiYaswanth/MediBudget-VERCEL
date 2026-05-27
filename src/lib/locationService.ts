@@ -22,13 +22,14 @@ export interface NearbyHospital {
 }
 
 /**
- * Request user's GPS location via HTML5 Geolocation API
- * Falls back to low accuracy if high accuracy fails or times out
+ * Request user's GPS location via HTML5 Geolocation API.
+ * Falls back to low accuracy, and then to IP-based approximate geocoding
+ * if browser location permissions are denied or unavailable.
  */
 export function getUserLocation(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported by your browser."));
+      getUserLocationByIP().then(resolve).catch(reject);
       return;
     }
 
@@ -41,24 +42,29 @@ export function getUserLocation(): Promise<GeolocationPosition> {
     navigator.geolocation.getCurrentPosition(
       resolve,
       (err) => {
-        // Fallback to low-accuracy (faster, IP/Wifi based) if high accuracy fails
         console.warn("High-accuracy geolocation failed, falling back to standard accuracy...", err.message);
         navigator.geolocation.getCurrentPosition(
           resolve,
           (err2) => {
-            switch (err2.code) {
-              case err2.PERMISSION_DENIED:
-                reject(new Error("Location permission denied. Please allow location access in your browser settings."));
-                break;
-              case err2.POSITION_UNAVAILABLE:
-                reject(new Error("Location information is unavailable. Please ensure GPS is enabled."));
-                break;
-              case err2.TIMEOUT:
-                reject(new Error("Location request timed out. Please try again."));
-                break;
-              default:
-                reject(new Error("An unknown error occurred while getting location."));
-            }
+            console.warn("Standard accuracy geolocation failed, attempting IP geocoding fallback...", err2.message);
+            getUserLocationByIP()
+              .then(resolve)
+              .catch(() => {
+                // If IP-based geocoding also fails, reject with original error message
+                switch (err2.code) {
+                  case err2.PERMISSION_DENIED:
+                    reject(new Error("Location permission denied. Please allow location access or select manually."));
+                    break;
+                  case err2.POSITION_UNAVAILABLE:
+                    reject(new Error("Location information is unavailable. Please ensure GPS is enabled."));
+                    break;
+                  case err2.TIMEOUT:
+                    reject(new Error("Location request timed out. Please try again."));
+                    break;
+                  default:
+                    reject(new Error("An unknown error occurred while getting location."));
+                }
+              });
           },
           {
             enableHighAccuracy: false,
@@ -70,6 +76,37 @@ export function getUserLocation(): Promise<GeolocationPosition> {
       options
     );
   });
+}
+
+/**
+ * Fallback: Get approximate location coordinates via free IP-based Geolocation (ipapi.co)
+ */
+async function getUserLocationByIP(): Promise<GeolocationPosition> {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    if (!res.ok) throw new Error("IP Geolocation API returned an error status.");
+    const data = await res.json();
+    
+    if (data.latitude && data.longitude) {
+      console.log("Successfully resolved approximate coordinates via IP Geolocation:", data.latitude, data.longitude);
+      return {
+        coords: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          accuracy: 10000, // approximate (10km accuracy)
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition;
+    }
+    throw new Error("Invalid IP geocoding data format.");
+  } catch (e) {
+    console.error("IP geocoding failed:", e);
+    throw e;
+  }
 }
 
 // Simple in-memory cache for geocoding results
