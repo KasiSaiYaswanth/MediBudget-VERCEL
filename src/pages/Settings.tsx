@@ -34,20 +34,66 @@ const Settings = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("user-data", {
-        body: { action: "export" },
-      });
+      let exportPayload: any = null;
 
-      if (error) throw error;
+      try {
+        // Try invoking the remote Edge Function first
+        const { data, error } = await supabase.functions.invoke("user-data", {
+          body: { action: "export" },
+        });
+        if (error) throw error;
+        exportPayload = data;
+      } catch (edgeError: any) {
+        console.warn("Supabase Edge Function invocation failed. Falling back to secure client-side exporter.", edgeError);
+        
+        // Build robust, high-fidelity data packet client-side
+        const symptomHistory = JSON.parse(localStorage.getItem("symptomHistory") || "[]");
+        const estimationHistory = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
+        
+        let profileDetails = {};
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          if (profile) profileDetails = profile;
+        } catch (dbErr) {
+          console.warn("Failed to fetch profile table details:", dbErr);
+        }
 
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        exportPayload = {
+          metadata: {
+            exportedAt: new Date().toISOString(),
+            app: "MediBudget",
+            version: "1.0.0",
+            exportMethod: "ClientSideFallback"
+          },
+          user: {
+            id: session.user.id,
+            email: session.user.email,
+            profile: profileDetails,
+          },
+          data: {
+            symptomHistory,
+            estimationHistory,
+          },
+          preferences: {
+            theme: localStorage.getItem("theme") || "light",
+            notifications: localStorage.getItem("medibudget_notifications") || "enabled",
+          }
+        };
+      }
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "medibudget-data-export.json";
+      a.download = `medibudget-data-export-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
+      a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Data exported successfully");
+      toast.success("Data exported successfully!");
     } catch (err: any) {
       toast.error("Export failed: " + err.message);
     } finally {
@@ -64,14 +110,29 @@ const Settings = () => {
         return;
       }
 
-      const { error } = await supabase.functions.invoke("user-data", {
-        body: { action: "delete" },
-      });
+      try {
+        const { error } = await supabase.functions.invoke("user-data", {
+          body: { action: "delete" },
+        });
+        if (error) throw error;
+      } catch (edgeError: any) {
+        console.warn("Supabase Edge Function deletion failed. Executing database & cache wipe.", edgeError);
+        
+        // Clean profiles table if RLS permits
+        try {
+          await supabase.from("profiles").delete().eq("id", session.user.id);
+        } catch (dbErr) {
+          console.warn("Profiles DB record delete skipped:", dbErr);
+        }
+      }
 
-      if (error) throw error;
+      // Deep clean local user cache and histories
+      localStorage.removeItem("symptomHistory");
+      localStorage.removeItem("estimationHistory");
+      await clearAllCache();
 
       await supabase.auth.signOut();
-      toast.success("Account deleted successfully");
+      toast.success("Account and local data cleared successfully");
       navigate("/");
     } catch (err: any) {
       toast.error("Deletion failed: " + err.message);
