@@ -78,7 +78,7 @@ const NearbyHospitals = ({ citiesList, onLocationDetected, onHospitalSelected, o
 
       const results = await Promise.allSettled([
         reverseGeocode(latitude, longitude),
-        fetchNearbyHospitals(latitude, longitude, 10),
+        fetchNearbyHospitals(latitude, longitude, 25),
       ]);
 
       if (results[0].status === "fulfilled") {

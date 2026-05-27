@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface LocationResult {
   latitude: number;
   longitude: number;
@@ -164,11 +166,21 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 function classifyHospital(tags: Record<string, string>): { type: NearbyHospital["type"]; typeLabel: string } {
   const operator = (tags.operator || "").toLowerCase();
   const name = (tags.name || "").toLowerCase();
-  const healthcareType = (tags["healthcare:type"] || tags.operator_type || "").toLowerCase();
+  const operatorType = (tags.operator_type || tags["operator:type"] || "").toLowerCase();
+  const ownership = (tags.ownership || tags["ownership:type"] || "").toLowerCase();
+  const healthcareType = (tags["healthcare:type"] || "").toLowerCase();
 
+  // Government / Public Hospitals
   if (
     healthcareType.includes("government") ||
+    healthcareType.includes("public") ||
     operator.includes("government") ||
+    operator.includes("public") ||
+    operator.includes("municipal") ||
+    operatorType.includes("government") ||
+    operatorType.includes("public") ||
+    ownership.includes("government") ||
+    ownership.includes("public") ||
     name.includes("government") ||
     name.includes("govt") ||
     name.includes("district") ||
@@ -178,21 +190,33 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
     name.includes("primary health") ||
     name.includes("phc") ||
     name.includes("chc") ||
-    name.includes("esi")
+    name.includes("esi") ||
+    name.includes("general hospital") ||
+    name.includes("civic") ||
+    name.includes("gh ") ||
+    name.endsWith(" gh")
   ) {
     return { type: "government", typeLabel: "Government Hospital" };
   }
 
+  // Trust / Charitable Hospitals
   if (
     name.includes("trust") ||
     name.includes("charitable") ||
     name.includes("mission") ||
     name.includes("seva") ||
-    name.includes("charity")
+    name.includes("charity") ||
+    name.includes("foundation") ||
+    operator.includes("trust") ||
+    operator.includes("charity") ||
+    operatorType.includes("community") ||
+    operatorType.includes("non-profit") ||
+    ownership.includes("trust")
   ) {
     return { type: "trust", typeLabel: "Trust / Charitable Hospital" };
   }
 
+  // Corporate Hospitals (Large chains, premium healthcare brands)
   if (
     name.includes("apollo") ||
     name.includes("fortis") ||
@@ -209,17 +233,28 @@ function classifyHospital(tags: Record<string, string>): { type: NearbyHospital[
     name.includes("kims") ||
     name.includes("nims") ||
     name.includes("aiims") ||
-    name.includes("corporate")
+    name.includes("corporate") ||
+    name.includes("cloudnine") ||
+    name.includes("columbia asia") ||
+    name.includes("hcc") ||
+    name.includes("shalky") ||
+    name.includes("sims") ||
+    name.includes("kauvery") ||
+    name.includes("mgm") ||
+    name.includes("gleneagles") ||
+    ownership.includes("corporate") ||
+    ownership.includes("company")
   ) {
     return { type: "corporate", typeLabel: "Corporate Hospital" };
   }
 
+  // Private (Default for most standard clinics/hospitals)
   return { type: "private", typeLabel: "Private Hospital" };
 }
 
 /**
  * Fetch nearby hospitals using OpenStreetMap Overpass API (free, CORS-enabled, no API key needed)
- * Calls directly from browser to avoid edge function latency/restrictions.
+ * combined with a local custom hospital database fallback/merge from Supabase.
  */
 export async function fetchNearbyHospitals(
   lat: number,
@@ -227,21 +262,103 @@ export async function fetchNearbyHospitals(
   radiusKm: number = 10
 ): Promise<NearbyHospital[]> {
   const radiusM = radiusKm * 1000;
+  let hospitals: NearbyHospital[] = [];
 
-  // Overpass QL query - fetch hospitals, clinics, and health centres
+  // 1. Fetch from local custom Supabase database first (extremely fast & accurate)
+  try {
+    const { data: dbHospitals } = await supabase
+      .from("hospitals")
+      .select("*");
+
+    if (dbHospitals && dbHospitals.length > 0) {
+      for (const dbh of dbHospitals) {
+        if (dbh.latitude && dbh.longitude) {
+          const dist = haversineKm(lat, lon, dbh.latitude, dbh.longitude);
+          if (dist <= radiusKm) {
+            let type: NearbyHospital["type"] = "private";
+            let typeLabel = "Private Hospital";
+
+            const cat = (dbh.category || "").toLowerCase();
+            const tier = (dbh.pricing_tier || "").toLowerCase();
+            const nameLower = (dbh.name || "").toLowerCase();
+
+            if (
+              cat.includes("government") ||
+              cat.includes("govt") ||
+              nameLower.includes("govt") ||
+              nameLower.includes("government") ||
+              nameLower.includes("aiims")
+            ) {
+              type = "government";
+              typeLabel = "Government Hospital";
+            } else if (
+              tier === "premium" ||
+              nameLower.includes("apollo") ||
+              nameLower.includes("fortis") ||
+              nameLower.includes("max ") ||
+              nameLower.includes("medanta") ||
+              nameLower.includes("manipal") ||
+              nameLower.includes("narayana") ||
+              nameLower.includes("yashoda") ||
+              nameLower.includes("kims") ||
+              nameLower.includes("care hospital")
+            ) {
+              type = "corporate";
+              typeLabel = "Corporate Hospital";
+            } else if (
+              nameLower.includes("trust") ||
+              nameLower.includes("charitable") ||
+              nameLower.includes("mission")
+            ) {
+              type = "trust";
+              typeLabel = "Trust / Charitable Hospital";
+            }
+
+            hospitals.push({
+              id: dbh.id || String(Math.random()),
+              name: dbh.name,
+              distance: Math.round(dist * 10) / 10,
+              type,
+              typeLabel,
+              lat: dbh.latitude,
+              lon: dbh.longitude,
+              address: dbh.city
+                ? `${dbh.city}${dbh.state ? `, ${dbh.state}` : ""}`
+                : "Address not available",
+            });
+          }
+        }
+      }
+    }
+  } catch (dbErr) {
+    console.warn("Failed to fetch hospitals from local database, relying on OSM:", dbErr);
+  }
+
+  // 2. Fetch from OpenStreetMap Overpass API (highly comprehensive search)
   const query = `
     [out:json][timeout:25];
     (
       node["amenity"="hospital"](around:${radiusM},${lat},${lon});
       way["amenity"="hospital"](around:${radiusM},${lat},${lon});
       relation["amenity"="hospital"](around:${radiusM},${lat},${lon});
+      
+      node["healthcare"="hospital"](around:${radiusM},${lat},${lon});
+      way["healthcare"="hospital"](around:${radiusM},${lat},${lon});
+      
+      node["building"="hospital"](around:${radiusM},${lat},${lon});
+      way["building"="hospital"](around:${radiusM},${lat},${lon});
+      
       node["amenity"="clinic"](around:${radiusM},${lat},${lon});
       way["amenity"="clinic"](around:${radiusM},${lat},${lon});
+      node["healthcare"="clinic"](around:${radiusM},${lat},${lon});
+      way["healthcare"="clinic"](around:${radiusM},${lat},${lon});
+      
+      node["amenity"="doctors"](around:${radiusM},${lat},${lon});
+      way["amenity"="doctors"](around:${radiusM},${lat},${lon});
     );
     out center tags;
   `;
 
-  // Try multiple Overpass API mirrors for reliability
   const mirrors = [
     "https://overpass-api.de/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
@@ -249,15 +366,20 @@ export async function fetchNearbyHospitals(
   ];
 
   let lastError: Error | null = null;
+  let osmSuccess = false;
 
   for (const mirror of mirrors) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s traditional timeout
+
     try {
       const res = await fetch(mirror, {
         method: "POST",
         body: `data=${encodeURIComponent(query)}`,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        signal: AbortSignal.timeout(20000), // 20s timeout per mirror
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         lastError = new Error(`Overpass returned ${res.status}`);
@@ -265,8 +387,9 @@ export async function fetchNearbyHospitals(
       }
 
       const data = await res.json();
+      const elements = data.elements || [];
 
-      const hospitals: NearbyHospital[] = (data.elements || [])
+      const osmHospitals: NearbyHospital[] = elements
         .filter((el: Record<string, unknown>) => {
           const tags = el.tags as Record<string, string> | undefined;
           return tags?.name;
@@ -297,17 +420,38 @@ export async function fetchNearbyHospitals(
             address: addr || "Address not available",
           } as NearbyHospital;
         })
-        .filter(Boolean)
-        .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
+        .filter(Boolean) as NearbyHospital[];
 
-      return hospitals;
+      hospitals.push(...osmHospitals);
+      osmSuccess = true;
+      break; // successfully fetched from this mirror, break loop
     } catch (err) {
+      clearTimeout(timeoutId);
       lastError = err instanceof Error ? err : new Error("Unknown error");
       continue; // try next mirror
     }
   }
 
-  throw lastError || new Error("Failed to fetch nearby hospitals. Please check your internet connection.");
+  // If both DB and OSM failed, throw the error
+  if (hospitals.length === 0 && lastError && !osmSuccess) {
+    throw lastError;
+  }
+
+  // 3. Deduplicate elements by name and proximity (<200m) to remove duplicate nodes/ways from OSM
+  const uniqueHospitals: NearbyHospital[] = [];
+  for (const h of hospitals) {
+    const isDuplicate = uniqueHospitals.some(
+      (uh) =>
+        uh.name.toLowerCase() === h.name.toLowerCase() &&
+        haversineKm(uh.lat, uh.lon, h.lat, h.lon) < 0.2
+    );
+    if (!isDuplicate) {
+      uniqueHospitals.push(h);
+    }
+  }
+
+  // Sort all unique hospitals by distance
+  return uniqueHospitals.sort((a, b) => a.distance - b.distance);
 }
 
 /**
