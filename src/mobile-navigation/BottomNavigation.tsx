@@ -32,12 +32,12 @@ export const BottomNavigation: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className="relative -top-5 flex flex-col items-center justify-center z-50 group shrink-0"
+                className="flex flex-col items-center justify-end w-12 h-12 pb-0.5 relative z-50 group shrink-0"
               >
-                <div className="h-13 w-13 rounded-full gradient-primary flex items-center justify-center shadow-glow active-scale pulse-ring">
-                  <item.icon className="h-5.5 w-5.5 text-primary-foreground transform group-hover:rotate-12 transition-transform" />
+                <div className="h-12 w-12 absolute -top-4 rounded-full gradient-primary flex items-center justify-center shadow-glow active-scale pulse-ring border-3 border-background bg-card">
+                  <item.icon className="h-5 w-5 text-primary-foreground transform group-hover:rotate-12 transition-transform" />
                 </div>
-                <span className="text-[9px] font-bold text-primary mt-1">
+                <span className="text-[8px] font-bold text-primary tracking-tight">
                   {item.label}
                 </span>
               </Link>

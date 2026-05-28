@@ -332,7 +332,7 @@ export const MobileEstimationHistory = () => {
             placeholder={activeTab === "estimations" ? "Search calculations..." : "Search symptoms..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9.5 h-10 text-xs rounded-2xl border border-border/40 bg-card/65 focus:border-primary/50"
+            className="pl-10 h-10 text-xs rounded-2xl border border-border/40 bg-card/65 focus:border-primary/50"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery("")} className="absolute right-3.5 top-3 text-muted-foreground hover:text-foreground">

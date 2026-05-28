@@ -79,7 +79,7 @@ export const MobileDashboardLayout: React.FC<MobileDashboardLayoutProps> = ({ ch
       </header>
 
       {/* Main Content Area with Safe Margin bottom for Bottom Nav */}
-      <main className="flex-1 scroll-bounce px-4 py-5 pb-24 max-w-md mx-auto w-full">
+      <main className="flex-1 px-4 py-5 pb-24 max-w-md mx-auto w-full">
         {children}
       </main>
 
