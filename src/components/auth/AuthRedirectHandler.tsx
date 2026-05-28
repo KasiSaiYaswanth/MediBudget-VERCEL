@@ -20,7 +20,8 @@ export const AuthRedirectHandler = () => {
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) {
       const queryParams = hash.replace(/^#/, "?");
-      window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+      const fallbackUrl = encodeURIComponent(`${window.location.origin}/medibudget.apk`);
+      window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
     } else {
       window.location.href = `com.medibudget.app://login${hash}`;
       
@@ -45,7 +46,8 @@ export const AuthRedirectHandler = () => {
         const isAndroid = /Android/i.test(navigator.userAgent);
         if (isAndroid) {
           const queryParams = hash.replace(/^#/, "?");
-          window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+          const fallbackUrl = encodeURIComponent(`${window.location.origin}/medibudget.apk`);
+          window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
         } else {
           window.location.href = `com.medibudget.app://login${hash}`;
           setTimeout(() => {
@@ -77,7 +79,8 @@ export const AuthRedirectHandler = () => {
               const isAndroid = /Android/i.test(navigator.userAgent);
               if (isAndroid) {
                 const queryParams = hashFragmentStr.replace(/^#/, "?");
-                window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+                const fallbackUrl = encodeURIComponent(`${window.location.origin}/medibudget.apk`);
+                window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
               } else {
                 window.location.href = `com.medibudget.app://login${hashFragmentStr}`;
                 setTimeout(() => {
@@ -115,7 +118,8 @@ export const AuthRedirectHandler = () => {
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) {
       const queryParams = hashFragment.replace(/^#/, "?");
-      return `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+      const fallbackUrl = encodeURIComponent(`${window.location.origin}/medibudget.apk`);
+      return `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
     }
     return `com.medibudget.app://login${hashFragment}`;
   };
