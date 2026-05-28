@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 // ==========================================
-// PREMIUM FULL-PAGE MOBILE LAYOUT WRAPPER
+// PREMIUM FULL-PAGE MOBILE LAYOUT WRAPPER (THEME AWARE)
 // ==========================================
 export const MobileSettingsPageLayout: React.FC<{
   title: string;
@@ -26,18 +26,18 @@ export const MobileSettingsPageLayout: React.FC<{
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -30 }}
       transition={{ type: "spring", damping: 25, stiffness: 280 }}
-      className="min-h-screen bg-[#070e11] text-foreground flex flex-col safe-top pb-10"
+      className="min-h-screen bg-[#f8fafc] dark:bg-[#070e11] text-slate-800 dark:text-foreground flex flex-col safe-top pb-10"
     >
-      {/* Sticky Premium Android Top Bar */}
-      <header className="sticky top-0 left-0 right-0 z-40 bg-[#070e11]/90 backdrop-blur-md border-b border-border/40 px-4 py-4 flex items-center gap-4">
+      {/* Sticky Premium Theme-Aware Top Bar */}
+      <header className="sticky top-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#070e11]/90 backdrop-blur-md border-b border-slate-200/60 dark:border-border/40 px-4 py-4 flex items-center gap-4">
         <button
           onClick={() => navigate("/settings")}
-          className="h-9 w-9 rounded-full bg-secondary/80 flex items-center justify-center text-foreground active-scale shrink-0"
+          className="h-9 w-9 rounded-full bg-slate-100 dark:bg-secondary/80 flex items-center justify-center text-slate-800 dark:text-foreground active-scale shrink-0 shadow-sm border border-slate-200/40 dark:border-transparent"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-sm font-black tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-sm font-black tracking-tight text-slate-900 dark:text-foreground">{title}</h1>
         </div>
       </header>
 
@@ -57,17 +57,17 @@ export const MobileSettingsPageLayout: React.FC<{
 export const MobileAboutPage: React.FC = () => {
   return (
     <MobileSettingsPageLayout title="About MediBudget">
-      <div className="space-y-5 text-xs leading-relaxed text-muted-foreground">
-        <p className="text-foreground font-black text-sm">Your Trusted Healthcare Cost Auditor</p>
+      <div className="space-y-5 text-xs leading-relaxed text-slate-600 dark:text-muted-foreground">
+        <p className="text-slate-900 dark:text-foreground font-black text-sm">Your Trusted Healthcare Cost Auditor</p>
         <p>
           MediBudget is an advanced mobile health assistant designed to make medical costs transparent, predictable, and fair for every citizen in India.
         </p>
         <p>
           Whether you are scanning a paper medical bill, analyzing symptoms with our AI assistant, calculating out-of-pocket insurance co-pays, or exploring state-sponsored healthcare schemes, MediBudget puts financial power back in your hands.
         </p>
-        <div className="bg-card border border-border/40 p-5 rounded-2xl space-y-3.5 shadow-sm">
-          <p className="font-black text-foreground text-[10px] uppercase tracking-wider text-teal-400">Core Features Included</p>
-          <ul className="list-disc pl-5 space-y-2 text-[11px]">
+        <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-5 rounded-2xl space-y-3.5 shadow-sm">
+          <p className="font-black text-teal-600 dark:text-teal-400 text-[10px] uppercase tracking-wider">Core Features Included</p>
+          <ul className="list-disc pl-5 space-y-2 text-[11px] text-slate-700 dark:text-slate-300">
             <li>Generic Medicine OCR & Alternative Suggestion</li>
             <li>Interactive Regional Procedure Cost Estimator</li>
             <li>Dynamic Health Insurance Co-pay Tracker</li>
@@ -75,7 +75,7 @@ export const MobileAboutPage: React.FC = () => {
             <li>Offline-ready Cache & Secure local-first audits</li>
           </ul>
         </div>
-        <p className="text-[10px] text-center text-muted-foreground/60 font-semibold pt-6">
+        <p className="text-[10px] text-center text-slate-400 dark:text-muted-foreground/60 font-semibold pt-6">
           MediBudget Mobile &bull; Designed and engineered in India.
         </p>
       </div>
@@ -89,30 +89,30 @@ export const MobileAboutPage: React.FC = () => {
 export const MobilePrivacyPage: React.FC = () => {
   return (
     <MobileSettingsPageLayout title="Privacy Policy">
-      <div className="space-y-5 text-xs leading-relaxed text-muted-foreground">
-        <p className="text-foreground font-black text-sm">Privacy First by Design</p>
+      <div className="space-y-5 text-xs leading-relaxed text-slate-600 dark:text-muted-foreground">
+        <p className="text-slate-900 dark:text-foreground font-black text-sm">Privacy First by Design</p>
         <p>
           At MediBudget, we believe that your health history and financial audits are deeply private. That's why our application enforces a strict data minimization protocol.
         </p>
         <div className="space-y-4 pt-2">
-          <div className="bg-card border border-border/40 p-4.5 rounded-2xl shadow-sm">
-            <p className="font-black text-foreground text-xs mb-1.5">🛡️ 1. Local Sandboxing</p>
-            <p className="text-[11px] leading-relaxed">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-4.5 rounded-2xl shadow-sm">
+            <p className="font-black text-slate-900 dark:text-foreground text-xs mb-1.5">🛡️ 1. Local Sandboxing</p>
+            <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
               Your symptom prediction logs and medicine OCR scanning invoices are cached locally inside secure app storage. We do not store or read your prescription scans on cloud databases.
             </p>
           </div>
           
-          <div className="bg-card border border-border/40 p-4.5 rounded-2xl shadow-sm">
-            <p className="font-black text-foreground text-xs mb-1.5">🌐 2. Data Transmission</p>
-            <p className="text-[11px] leading-relaxed">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-4.5 rounded-2xl shadow-sm">
+            <p className="font-black text-slate-900 dark:text-foreground text-xs mb-1.5">🌐 2. Data Transmission</p>
+            <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
               Any diagnostic predictions or cost lookups query optimized APIs through anonymous endpoints. Your personal identity is never tied to cost calculation requests.
             </p>
           </div>
           
-          <div className="bg-card border border-border/40 p-4.5 rounded-2xl shadow-sm">
-            <p className="font-black text-foreground text-xs mb-1.5">📧 3. Support Inquiries</p>
-            <p className="text-[11px] leading-relaxed">
-              If you reach out to our team at <a href="mailto:medibudget@gmail.com" className="text-primary font-bold hover:underline">medibudget@gmail.com</a>, your correspondence history is encrypted and only used to answer technical support inquiries.
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-4.5 rounded-2xl shadow-sm">
+            <p className="font-black text-slate-900 dark:text-foreground text-xs mb-1.5">📧 3. Support Inquiries</p>
+            <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
+              If you reach out to our team at <a href="mailto:medibudget@gmail.com" className="text-teal-600 dark:text-primary font-bold hover:underline">medibudget@gmail.com</a>, your correspondence history is encrypted and only used to answer technical support inquiries.
             </p>
           </div>
         </div>
@@ -127,22 +127,22 @@ export const MobilePrivacyPage: React.FC = () => {
 export const MobileTermsPage: React.FC = () => {
   return (
     <MobileSettingsPageLayout title="Terms of Service">
-      <div className="space-y-5 text-xs leading-relaxed text-muted-foreground">
-        <p className="text-foreground font-black text-sm">Agreement of Fair Use</p>
+      <div className="space-y-5 text-xs leading-relaxed text-slate-600 dark:text-muted-foreground">
+        <p className="text-slate-900 dark:text-foreground font-black text-sm">Agreement of Fair Use</p>
         <p>
           By creating an account on MediBudget Mobile, you agree to comply with our fair-use standards and guidelines.
         </p>
         <div className="space-y-4 pt-2">
-          <div className="bg-card border border-border/40 p-4.5 rounded-2xl shadow-sm">
-            <p className="font-black text-foreground text-xs mb-1.5">⚖️ 1. Educational Scope</p>
-            <p className="text-[11px] leading-relaxed">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-4.5 rounded-2xl shadow-sm">
+            <p className="font-black text-slate-900 dark:text-foreground text-xs mb-1.5">⚖️ 1. Educational Scope</p>
+            <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
               All costs, scheme checklists, and medicine generic recommendations generated by MediBudget are strictly for reference and educational use. We are not a medical billing service nor an insurance underwriting agency.
             </p>
           </div>
           
-          <div className="bg-card border border-border/40 p-4.5 rounded-2xl shadow-sm">
-            <p className="font-black text-foreground text-xs mb-1.5">🚫 2. Acceptable Actions</p>
-            <p className="text-[11px] leading-relaxed">
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-4.5 rounded-2xl shadow-sm">
+            <p className="font-black text-slate-900 dark:text-foreground text-xs mb-1.5">🚫 2. Acceptable Actions</p>
+            <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
               You may not scrape our cost catalogs, reverse-engineer the OCR processing flows, or send automated spam requests to our systems.
             </p>
           </div>
@@ -158,25 +158,25 @@ export const MobileTermsPage: React.FC = () => {
 export const MobileDisclaimerPage: React.FC = () => {
   return (
     <MobileSettingsPageLayout title="Medical Disclaimer">
-      <div className="space-y-5 text-xs leading-relaxed text-muted-foreground">
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex gap-3 items-start">
+      <div className="space-y-5 text-xs leading-relaxed text-slate-600 dark:text-muted-foreground">
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-500 flex gap-3 items-start shadow-sm">
           <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
           <div>
             <p className="font-black text-[10px] uppercase tracking-wider">CRITICAL NOTICE</p>
-            <p className="text-[11px] leading-relaxed font-semibold mt-1">
+            <p className="text-[11px] leading-relaxed font-semibold mt-1 text-amber-700 dark:text-amber-500/90">
               MediBudget is NOT a medical advisory application. Its contents do not substitute professional clinical advice.
             </p>
           </div>
         </div>
-        <div className="bg-card border border-border/40 p-5 rounded-2xl space-y-3.5 shadow-sm">
-          <p className="text-foreground font-black text-xs">1. No Medical Treatment Advice</p>
-          <p className="text-[11px] leading-relaxed">
+        <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-5 rounded-2xl space-y-3.5 shadow-sm">
+          <p className="text-slate-900 dark:text-foreground font-black text-xs">1. No Medical Treatment Advice</p>
+          <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
             The symptom checker and AI consultation guides are diagnostic aggregators designed to suggest potential categories for standard cost estimation ONLY. They do not constitute actual treatment prescriptions or professional medical diagnosis.
           </p>
         </div>
-        <div className="bg-card border border-border/40 p-5 rounded-2xl space-y-3.5 shadow-sm">
-          <p className="text-foreground font-black text-xs">2. Always Consult a Practitioner</p>
-          <p className="text-[11px] leading-relaxed">
+        <div className="bg-white dark:bg-card border border-slate-200 dark:border-border/40 p-5 rounded-2xl space-y-3.5 shadow-sm">
+          <p className="text-slate-900 dark:text-foreground font-black text-xs">2. Always Consult a Practitioner</p>
+          <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
             If you are experiencing severe symptoms, chest pain, or need urgent clinical help, immediately visit the nearest emergency medical facility or consult a certified licensed physician.
           </p>
         </div>
@@ -216,13 +216,13 @@ export const MobileFAQPage: React.FC = () => {
         {faqs.map((faq, idx) => {
           const isOpen = activeIndex === idx;
           return (
-            <div key={idx} className="rounded-2xl border border-border/40 bg-card overflow-hidden transition-all duration-300 shadow-sm">
+            <div key={idx} className="rounded-2xl border border-slate-200 dark:border-border/40 bg-white dark:bg-card overflow-hidden transition-all duration-300 shadow-sm">
               <button
                 onClick={() => setActiveIndex(isOpen ? null : idx)}
-                className="w-full flex justify-between items-center p-4 text-xs font-bold text-foreground text-left active:bg-secondary/40 transition-colors"
+                className="w-full flex justify-between items-center p-4 text-xs font-bold text-slate-800 dark:text-foreground text-left active:bg-slate-50 dark:active:bg-secondary/40 transition-colors"
               >
                 <span>{faq.q}</span>
-                <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} />
+                <ChevronDown className={`h-4 w-4 text-slate-500 dark:text-muted-foreground shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-teal-600 dark:text-primary" : ""}`} />
               </button>
               <AnimatePresence initial={false}>
                 {isOpen && (
@@ -232,7 +232,7 @@ export const MobileFAQPage: React.FC = () => {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.25 }}
                   >
-                    <div className="px-4 pb-4 pt-1 text-[11px] text-muted-foreground leading-relaxed border-t border-border/20">
+                    <div className="px-4 pb-4 pt-1 text-[11px] text-slate-600 dark:text-muted-foreground leading-relaxed border-t border-slate-100 dark:border-border/20">
                       {faq.a}
                     </div>
                   </motion.div>
@@ -292,8 +292,8 @@ export const MobileSupportPage: React.FC = () => {
             <MailCheck className="h-7 w-7" />
           </div>
           <div>
-            <p className="font-bold text-foreground text-sm">Email Client Opened!</p>
-            <p className="text-xs text-muted-foreground mt-1 px-6 leading-relaxed">
+            <p className="font-bold text-slate-900 dark:text-foreground text-sm">Email Client Opened!</p>
+            <p className="text-xs text-slate-500 dark:text-muted-foreground mt-1 px-6 leading-relaxed">
               We have launched your system's email application with your prefilled query. Please tap send in your email app.
             </p>
           </div>
@@ -301,8 +301,8 @@ export const MobileSupportPage: React.FC = () => {
       ) : (
         <div className="space-y-5">
           <div className="space-y-1.5">
-            <p className="text-xs font-bold text-foreground">Technical Support & General Inquiries</p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <p className="text-xs font-bold text-slate-900 dark:text-foreground">Technical Support & General Inquiries</p>
+            <p className="text-[11px] text-slate-500 dark:text-muted-foreground leading-relaxed">
               Have questions, found a billing mismatch, or need technical assistance? Reach our dedicated support team instantly.
             </p>
           </div>
@@ -314,14 +314,14 @@ export const MobileSupportPage: React.FC = () => {
               onClick={(e) => {
                 e.stopPropagation();
               }}
-              className="flex items-center gap-3.5 p-4 rounded-2xl bg-card border border-border/40 text-xs text-foreground active-scale hover:bg-secondary/20 transition-colors shadow-sm"
+              className="flex items-center gap-3.5 p-4 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-border/40 text-xs text-slate-800 dark:text-foreground active-scale hover:bg-slate-50 dark:hover:bg-secondary/20 transition-colors shadow-sm"
             >
-              <div className="h-9 w-9 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400 shrink-0">
+              <div className="h-9 w-9 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
                 <Mail className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <p className="font-bold text-foreground">Email Support Directly</p>
-                <p className="text-[11px] text-teal-400 font-bold">medibudget@gmail.com</p>
+                <p className="font-bold text-slate-900 dark:text-foreground">Email Support Directly</p>
+                <p className="text-[11px] text-teal-600 dark:text-teal-400 font-bold">medibudget@gmail.com</p>
               </div>
             </a>
 
@@ -333,32 +333,32 @@ export const MobileSupportPage: React.FC = () => {
               onClick={(e) => {
                 e.stopPropagation();
               }}
-              className="flex items-center gap-3.5 p-4 rounded-2xl bg-card border border-green-500/20 text-xs text-foreground active-scale hover:bg-green-500/5 transition-colors shadow-sm"
+              className="flex items-center gap-3.5 p-4 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-green-500/20 text-xs text-slate-800 dark:text-foreground active-scale hover:bg-green-50/50 dark:hover:bg-green-500/5 transition-colors shadow-sm"
             >
-              <div className="h-9 w-9 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400 shrink-0">
-                <MessageCircle className="h-5 w-5 text-green-400" />
+              <div className="h-9 w-9 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                <MessageCircle className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <p className="font-bold text-foreground">Chat on WhatsApp</p>
-                <p className="text-[11px] text-green-400 font-bold">+91 93819 87307</p>
+                <p className="font-bold text-slate-900 dark:text-foreground">Chat on WhatsApp</p>
+                <p className="text-[11px] text-green-600 dark:text-green-400 font-bold">+91 93819 87307</p>
               </div>
             </a>
           </div>
 
           <form onSubmit={handleFeedback} className="space-y-4 pt-2">
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider px-1">Quick Feedback Note</label>
+              <label className="text-[9px] font-black text-slate-400 dark:text-muted-foreground uppercase tracking-wider px-1">Quick Feedback Note</label>
               <textarea
                 required
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="How can we help optimize your MediBudget experience today?"
-                className="w-full rounded-2xl border border-border/40 bg-card p-4 text-xs text-foreground focus:outline-none focus:border-teal-400 placeholder:text-muted-foreground/60 resize-none shadow-sm"
+                className="w-full rounded-2xl border border-slate-200 dark:border-border/40 bg-white dark:bg-card p-4 text-xs text-slate-800 dark:text-foreground focus:outline-none focus:border-teal-600 dark:focus:border-teal-400 placeholder:text-slate-400 dark:placeholder:text-muted-foreground/60 resize-none shadow-sm"
               />
             </div>
 
-            <Button type="submit" className="w-full h-11 text-xs font-bold rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button type="submit" className="w-full h-11 text-xs font-bold rounded-2xl bg-teal-600 hover:bg-teal-700 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-primary-foreground shadow-md">
               Send Email Query
             </Button>
           </form>

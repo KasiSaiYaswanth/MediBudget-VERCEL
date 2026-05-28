@@ -146,22 +146,22 @@ export const MobileSettings = () => {
         
         {/* Top Header */}
         <div className="flex items-center gap-2">
-          <Link to="/dashboard" className="h-8 w-8 rounded-full bg-secondary/80 flex items-center justify-center text-foreground active-scale shrink-0">
+          <Link to="/dashboard" className="h-8 w-8 rounded-full bg-slate-100 dark:bg-secondary/80 flex items-center justify-center text-slate-800 dark:text-foreground active-scale shrink-0 shadow-sm border border-slate-200/40 dark:border-transparent">
             <ChevronLeft className="h-4.5 w-4.5" />
           </Link>
           <div>
-            <h1 className="text-lg font-black text-foreground">App Settings</h1>
-            <p className="text-[10px] text-muted-foreground">Manage offline storage, preferences & biometrics</p>
+            <h1 className="text-lg font-black text-slate-900 dark:text-foreground">App Settings</h1>
+            <p className="text-[10px] text-slate-500 dark:text-muted-foreground font-semibold">Manage offline storage, preferences & biometrics</p>
           </div>
         </div>
 
         {/* Group 1: Preferences */}
         <div className="space-y-1">
-          <p className="text-[9px] font-black text-muted-foreground uppercase px-2 tracking-wider">Appearance & Biometrics</p>
-          <div className="rounded-2xl border border-border/40 bg-card overflow-hidden divide-y divide-border/40">
+          <p className="text-[9px] font-black text-slate-500 dark:text-muted-foreground uppercase px-2 tracking-wider">Appearance & Biometrics</p>
+          <div className="rounded-2xl border border-slate-200/80 dark:border-border/40 bg-white dark:bg-card overflow-hidden divide-y divide-slate-100 dark:divide-border/40 shadow-sm">
             
             {/* Dark Theme toggle row */}
-            <div className="flex justify-between items-center p-3.5 text-xs text-foreground">
+            <div className="flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
                   <Moon className="h-4 w-4 text-purple-400" />
@@ -172,13 +172,13 @@ export const MobileSettings = () => {
                 {darkMode ? (
                   <ToggleRight className="h-7 w-7 text-primary" />
                 ) : (
-                  <ToggleLeft className="h-7 w-7 text-muted-foreground/60" />
+                  <ToggleLeft className="h-7 w-7 text-slate-400 dark:text-muted-foreground/60" />
                 )}
               </button>
             </div>
 
             {/* Biometric FaceID/Fingerprint row */}
-            <div className="flex justify-between items-center p-3.5 text-xs text-foreground">
+            <div className="flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
                   <Fingerprint className="h-4 w-4 text-blue-400" />
@@ -189,7 +189,7 @@ export const MobileSettings = () => {
                 {biometrics ? (
                   <ToggleRight className="h-7 w-7 text-primary" />
                 ) : (
-                  <ToggleLeft className="h-7 w-7 text-muted-foreground/60" />
+                  <ToggleLeft className="h-7 w-7 text-slate-400 dark:text-muted-foreground/60" />
                 )}
               </button>
             </div>
@@ -199,73 +199,73 @@ export const MobileSettings = () => {
 
         {/* Group 2: App Information & Legal */}
         <div className="space-y-1">
-          <p className="text-[9px] font-black text-muted-foreground uppercase px-2 tracking-wider">Help, Information & Legal</p>
-          <div className="rounded-2xl border border-border/40 bg-card overflow-hidden divide-y divide-border/40">
+          <p className="text-[9px] font-black text-slate-500 dark:text-muted-foreground uppercase px-2 tracking-wider">Help, Information & Legal</p>
+          <div className="rounded-2xl border border-slate-200/80 dark:border-border/40 bg-white dark:bg-card overflow-hidden divide-y divide-slate-100 dark:divide-border/40 shadow-sm">
             
             {/* About */}
-            <button onClick={() => navigate("/settings/about")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/about")} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
-                  <Info className="h-4 w-4 text-teal-400" />
+                  <Info className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                 </div>
                 <span className="font-bold">About MediBudget</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
             {/* FAQ */}
-            <button onClick={() => navigate("/settings/faq")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/faq")} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-                  <HelpCircle className="h-4 w-4 text-indigo-400" />
+                  <HelpCircle className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <span className="font-bold">Frequently Asked Questions</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
             {/* Privacy Policy */}
-            <button onClick={() => navigate("/settings/privacy")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/privacy")} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="font-bold">Privacy Policy</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
             {/* Terms of Service */}
-            <button onClick={() => navigate("/settings/terms")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/terms")} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
-                  <Scale className="h-4 w-4 text-sky-400" />
+                  <Scale className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                 </div>
                 <span className="font-bold">Terms of Service</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
             {/* Medical Disclaimer */}
-            <button onClick={() => navigate("/settings/disclaimer")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/disclaimer")} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <ShieldAlert className="h-4 w-4 text-amber-400" />
+                  <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="font-bold">Medical Disclaimer</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
             {/* Contact Us */}
-            <button onClick={() => navigate("/settings/support")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/support")} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                  <Mail className="h-4 w-4 text-orange-400" />
+                  <Mail className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 </div>
                 <span className="font-bold">Contact Support</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
           </div>
@@ -273,35 +273,35 @@ export const MobileSettings = () => {
 
         {/* Group 3: Data & Sync */}
         <div className="space-y-1">
-          <p className="text-[9px] font-black text-muted-foreground uppercase px-2 tracking-wider">Offline Cache & Storage</p>
-          <div className="rounded-2xl border border-border/40 bg-card overflow-hidden divide-y divide-border/40">
+          <p className="text-[9px] font-black text-slate-500 dark:text-muted-foreground uppercase px-2 tracking-wider">Offline Cache & Storage</p>
+          <div className="rounded-2xl border border-slate-200/80 dark:border-border/40 bg-white dark:bg-card overflow-hidden divide-y divide-slate-100 dark:divide-border/40 shadow-sm">
             
             {/* Export JSON row */}
-            <button onClick={handleExportData} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={handleExportData} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                  <Download className="h-4 w-4 text-emerald-400" />
+                  <Download className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="text-left">
                   <p className="font-bold">Export Backup Data</p>
-                  <p className="text-[8px] text-muted-foreground">Download estimate histories as JSON</p>
+                  <p className="text-[8px] text-slate-500 dark:text-muted-foreground font-semibold">Download estimate histories as JSON</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
             {/* Clear health cache row */}
-            <button onClick={handleClearCache} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={handleClearCache} className="w-full flex justify-between items-center p-3.5 text-xs text-slate-850 dark:text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <WifiOff className="h-4 w-4 text-amber-400" />
+                  <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="text-left">
                   <p className="font-bold">Clear Offline Health Cache</p>
-                  <p className="text-[8px] text-muted-foreground">Flushes local regional multipliers</p>
+                  <p className="text-[8px] text-slate-500 dark:text-muted-foreground font-semibold">Flushes local regional multipliers</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-muted-foreground" />
             </button>
 
           </div>
@@ -309,32 +309,32 @@ export const MobileSettings = () => {
 
         {/* Group 4: Accounts and Logout */}
         <div className="space-y-1">
-          <p className="text-[9px] font-black text-muted-foreground uppercase px-2 tracking-wider">Session & Security</p>
-          <div className="rounded-2xl border border-border/40 bg-card overflow-hidden divide-y divide-border/40">
+          <p className="text-[9px] font-black text-slate-500 dark:text-muted-foreground uppercase px-2 tracking-wider">Session & Security</p>
+          <div className="rounded-2xl border border-slate-200/80 dark:border-border/40 bg-white dark:bg-card overflow-hidden divide-y divide-slate-100 dark:divide-border/40 shadow-sm">
             
             {/* Ordinary Logout */}
-            <button onClick={handleSignOut} className="w-full flex justify-between items-center p-3.5 text-xs text-amber-500 active-scale">
+            <button onClick={handleSignOut} className="w-full flex justify-between items-center p-3.5 text-xs text-amber-600 dark:text-amber-500 active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <LogOut className="h-4 w-4 text-amber-400" />
+                  <LogOut className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="font-bold text-left">Sign Out of Account</span>
               </div>
-              <ChevronRight className="h-4 w-4 text-amber-500/60" />
+              <ChevronRight className="h-4 w-4 text-amber-600/60 dark:text-amber-500/60" />
             </button>
 
             {/* Permanently Delete Account */}
-            <button onClick={handleDeleteAccount} className="w-full flex justify-between items-center p-3.5 text-xs text-red-500 active-scale">
+            <button onClick={handleDeleteAccount} className="w-full flex justify-between items-center p-3.5 text-xs text-red-600 dark:text-red-500 active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-                  <Trash className="h-4 w-4 text-red-400" />
+                  <Trash className="h-4 w-4 text-red-500" />
                 </div>
                 <div className="text-left">
                   <p className="font-bold">Permanently Delete Account</p>
-                  <p className="text-[8px] text-red-400/80">Wipes all credentials and histories</p>
+                  <p className="text-[8px] text-red-500 font-semibold">Wipes all credentials and histories</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-red-400/60" />
+              <ChevronRight className="h-4 w-4 text-red-500/60" />
             </button>
 
           </div>
@@ -342,8 +342,8 @@ export const MobileSettings = () => {
 
         {/* Info label footer */}
         <div className="text-center py-4">
-          <p className="text-[8px] text-muted-foreground font-semibold">MediBudget Android Mobile &bull; Version 1.2.0 (Build 41)</p>
-          <p className="text-[7px] text-muted-foreground mt-0.5">&copy; 2026 MediBudget Inc. All Rights Reserved.</p>
+          <p className="text-[8px] text-slate-400 dark:text-muted-foreground font-semibold">MediBudget Android Mobile &bull; Version 1.2.0 (Build 41)</p>
+          <p className="text-[7px] text-slate-400 dark:text-muted-foreground mt-0.5">&copy; 2026 MediBudget Inc. All Rights Reserved.</p>
         </div>
 
       </div>
