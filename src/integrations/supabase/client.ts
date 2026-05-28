@@ -8,6 +8,9 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
+
 // Fallback to placeholder strings to prevent the app from completely crashing with a blank screen
 // if the environment variables are missing during a production build (e.g., on Vercel)
 const url = SUPABASE_URL || "https://placeholder-project.supabase.co";
@@ -20,10 +23,25 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   );
 }
 
+// Custom storage provider for native mobile applications using Capacitor Preferences
+const capacitorStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    const { value } = await Preferences.get({ key });
+    return value;
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    await Preferences.set({ key, value });
+  },
+  removeItem: async (key: string): Promise<void> => {
+    await Preferences.remove({ key });
+  }
+};
+
 export const supabase = createClient<Database>(url, key, {
   auth: {
-    storage: localStorage,
+    storage: Capacitor.isNativePlatform() ? capacitorStorage : localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: !Capacitor.isNativePlatform() // Let App.tsx handle redirect url session setup on mobile
   }
 });

@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { passwordSchema } from "@/lib/passwordValidation";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
+import { Browser } from "@capacitor/browser";
+
 export const MobileSignup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,7 +40,7 @@ export const MobileSignup = () => {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: "com.medibudget.app://login",
       },
     });
     setLoading(false);
@@ -51,14 +53,25 @@ export const MobileSignup = () => {
   };
 
   const handleGoogleSignup = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: "com.medibudget.app://login",
+          skipBrowserRedirect: true,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        await Browser.open({ url: data.url, windowName: '_self' });
       }
-    });
-    if (error) {
+    } catch (error: any) {
       toast.error("Google sign-up failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 

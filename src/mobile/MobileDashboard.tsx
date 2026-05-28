@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Scan, Calculator, ShieldCheck, History, ArrowRight, TrendingDown,
-  Users, Sparkles, Shield, IndianRupee, Building2, MapPin, Clock, HeartHandshake
+  Users, Sparkles, Shield, IndianRupee, Building2, MapPin, Clock, HeartHandshake,
+  Pill
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
