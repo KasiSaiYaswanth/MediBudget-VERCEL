@@ -76,29 +76,43 @@ const MobileAppRoutes = () => {
       const url = event.url;
       
       // Check if it is a deep link callback from Supabase OAuth or confirmation
-      if (url && url.startsWith("com.medibudget.app://")) {
+      if (url && (url.startsWith("com.medibudget.app://") || url.startsWith("medibudget://"))) {
         try {
+          let accessToken = "";
+          let refreshToken = "";
+
           // Parse hash fragment params: access_token and refresh_token
-          const parts = url.split("#");
-          if (parts.length > 1) {
-            const hash = parts[1];
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get("access_token");
-            const refreshToken = params.get("refresh_token");
+          const hashParts = url.split("#");
+          if (hashParts.length > 1) {
+            const params = new URLSearchParams(hashParts[1]);
+            accessToken = params.get("access_token") || "";
+            refreshToken = params.get("refresh_token") || "";
+          }
 
-            if (accessToken && refreshToken) {
-              // Set Supabase session programmatically
-              const { data, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
+          // If not found in hash, parse from query search parameters
+          if (!accessToken || !refreshToken) {
+            const queryParts = url.split("?");
+            if (queryParts.length > 1) {
+              // Strip trailing hash if any exists
+              const cleanedQuery = queryParts[1].split("#")[0];
+              const params = new URLSearchParams(cleanedQuery);
+              accessToken = params.get("access_token") || "";
+              refreshToken = params.get("refresh_token") || "";
+            }
+          }
 
-              if (error) throw error;
+          if (accessToken && refreshToken) {
+            // Set Supabase session programmatically
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
 
-              if (data.session) {
-                toast.success("Welcome back! Google Sign-in successful.");
-                navigate("/dashboard", { replace: true });
-              }
+            if (error) throw error;
+
+            if (data.session) {
+              toast.success("Welcome back! Google Sign-in successful.");
+              navigate("/dashboard", { replace: true });
             }
           } else if (url.includes("reset-password")) {
             // Handle reset password route
