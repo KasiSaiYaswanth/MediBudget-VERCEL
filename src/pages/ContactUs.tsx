@@ -98,9 +98,7 @@ const ContactUs = () => {
                   href={`mailto:${SUPPORT_EMAIL}`}
                   className="text-sm text-primary hover:underline break-all"
                   onClick={(e) => {
-                    e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = `mailto:${SUPPORT_EMAIL}`;
                   }}
                 >
                   {SUPPORT_EMAIL}
