@@ -11,13 +11,8 @@ const DownloadAndroidSection = () => {
 
   const handleDownload = () => {
     setDownloaded(true);
-    // Trigger download
-    const link = document.createElement("a");
-    link.href = "/medibudget.apk";
-    link.download = "medibudget.apk";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Direct Google Drive APK download link
+    window.open("https://drive.google.com/uc?export=download&id=1EDs5bpe3QiTo05--8nyDRr2UiU0BURpT", "_blank", "noopener,noreferrer");
   };
 
   return (
