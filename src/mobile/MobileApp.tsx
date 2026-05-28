@@ -19,6 +19,14 @@ const MobileSchemeChecker = lazy(() => import("./MobileSchemeChecker"));
 const MobileEstimationHistory = lazy(() => import("./MobileEstimationHistory"));
 const MobileSettings = lazy(() => import("./MobileSettings"));
 
+// Settings Full-Screen Detail Pages
+const MobileAboutSettings = lazy(() => import("./legal/MobileLegalPages").then(module => ({ default: module.MobileAboutPage })));
+const MobilePrivacySettings = lazy(() => import("./legal/MobileLegalPages").then(module => ({ default: module.MobilePrivacyPage })));
+const MobileTermsSettings = lazy(() => import("./legal/MobileLegalPages").then(module => ({ default: module.MobileTermsPage })));
+const MobileDisclaimerSettings = lazy(() => import("./legal/MobileLegalPages").then(module => ({ default: module.MobileDisclaimerPage })));
+const MobileFAQSettings = lazy(() => import("./legal/MobileLegalPages").then(module => ({ default: module.MobileFAQPage })));
+const MobileSupportSettings = lazy(() => import("./legal/MobileLegalPages").then(module => ({ default: module.MobileSupportPage })));
+
 // Lightweight Mobile-specific Protected Route to isolate session verification from desktop wrappers
 const MobileProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = React.useState<any>(null);
@@ -163,6 +171,14 @@ const MobileAppRoutes = () => {
         <Route path="/schemes" element={<MobileProtectedRoute><MobileSchemeChecker /></MobileProtectedRoute>} />
         <Route path="/history" element={<MobileProtectedRoute><MobileEstimationHistory /></MobileProtectedRoute>} />
         <Route path="/settings" element={<MobileProtectedRoute><MobileSettings /></MobileProtectedRoute>} />
+        
+        {/* Settings Drill-Down Sub-pages */}
+        <Route path="/settings/about" element={<MobileProtectedRoute><MobileAboutSettings /></MobileProtectedRoute>} />
+        <Route path="/settings/privacy" element={<MobileProtectedRoute><MobilePrivacySettings /></MobileProtectedRoute>} />
+        <Route path="/settings/terms" element={<MobileProtectedRoute><MobileTermsSettings /></MobileProtectedRoute>} />
+        <Route path="/settings/disclaimer" element={<MobileProtectedRoute><MobileDisclaimerSettings /></MobileProtectedRoute>} />
+        <Route path="/settings/faq" element={<MobileProtectedRoute><MobileFAQSettings /></MobileProtectedRoute>} />
+        <Route path="/settings/support" element={<MobileProtectedRoute><MobileSupportSettings /></MobileProtectedRoute>} />
 
         {/* Catch-all redirect to splash check */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -29,29 +29,12 @@ import {
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
 import { clearAllCache } from "@/lib/offlineStorage";
 
-// Import modular legal sheets
-import {
-  AboutSheet,
-  PrivacyPolicySheet,
-  TermsOfServiceSheet,
-  MedicalDisclaimerSheet,
-  FAQSheet,
-  ContactUsSheet
-} from "@/mobile/legal/MobileLegalSheets";
-
+// Settings sub-pages are lazy loaded as independent full routes
 export const MobileSettings = () => {
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [biometrics, setBiometrics] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  
-  // Sheet states
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [termsOpen, setTermsOpen] = useState(false);
-  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
-  const [faqOpen, setFaqOpen] = useState(false);
-  const [contactOpen, setContactOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -223,7 +206,7 @@ export const MobileSettings = () => {
           <div className="rounded-2xl border border-border/40 bg-card overflow-hidden divide-y divide-border/40">
             
             {/* About */}
-            <button onClick={() => setAboutOpen(true)} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/about")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
                   <Info className="h-4 w-4 text-teal-400" />
@@ -233,19 +216,19 @@ export const MobileSettings = () => {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
 
-            {/* FAQ Accordion view */}
-            <div className="p-3.5 text-xs text-foreground space-y-2">
-              <div className="flex items-center gap-2.5 mb-2 px-0.5">
+            {/* FAQ */}
+            <button onClick={() => navigate("/settings/faq")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+              <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
                   <HelpCircle className="h-4 w-4 text-indigo-400" />
                 </div>
                 <span className="font-bold">Frequently Asked Questions</span>
               </div>
-              <FAQSheet isOpen={faqOpen} onClose={() => setFaqOpen(false)} />
-            </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
 
             {/* Privacy Policy */}
-            <button onClick={() => setPrivacyOpen(true)} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/privacy")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" />
@@ -256,7 +239,7 @@ export const MobileSettings = () => {
             </button>
 
             {/* Terms of Service */}
-            <button onClick={() => setTermsOpen(true)} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/terms")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
                   <Scale className="h-4 w-4 text-sky-400" />
@@ -267,7 +250,7 @@ export const MobileSettings = () => {
             </button>
 
             {/* Medical Disclaimer */}
-            <button onClick={() => setDisclaimerOpen(true)} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/disclaimer")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
                   <ShieldAlert className="h-4 w-4 text-amber-400" />
@@ -278,7 +261,7 @@ export const MobileSettings = () => {
             </button>
 
             {/* Contact Us */}
-            <button onClick={() => setContactOpen(true)} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
+            <button onClick={() => navigate("/settings/support")} className="w-full flex justify-between items-center p-3.5 text-xs text-foreground active-scale">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
                   <Mail className="h-4 w-4 text-orange-400" />
@@ -367,14 +350,6 @@ export const MobileSettings = () => {
         </div>
 
       </div>
-
-      {/* Render Slide Up Sheets */}
-      <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
-      <PrivacyPolicySheet isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
-      <TermsOfServiceSheet isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
-      <MedicalDisclaimerSheet isOpen={disclaimerOpen} onClose={() => setDisclaimerOpen(false)} />
-      <ContactUsSheet isOpen={contactOpen} onClose={() => setContactOpen(false)} />
-
     </MobileDashboardLayout>
   );
 };
