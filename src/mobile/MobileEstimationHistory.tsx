@@ -129,7 +129,9 @@ export const MobileEstimationHistory = () => {
       if (isSilent) toast.success("History database updated");
     } catch (err: any) {
       console.error("Failed to query history logs:", err);
-      toast.error("Network issue. Loaded local history instead.");
+      if (isSilent) {
+        toast.error("Network issue. Loaded local history instead.");
+      }
 
       // Pull from local storage as emergency backup
       const localEst = JSON.parse(localStorage.getItem("estimationHistory") || "[]");

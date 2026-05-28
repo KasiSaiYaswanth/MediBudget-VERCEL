@@ -36,7 +36,7 @@ export const BottomNavigation: React.FC = () => {
                   isActive ? "text-primary scale-105 font-bold" : "text-muted-foreground hover:text-foreground font-semibold"
                 }`}
               >
-                <div className="h-11 w-11 absolute -top-3 rounded-full gradient-primary flex items-center justify-center shadow-glow active-scale pulse-ring border-3 border-background bg-card">
+                <div className="h-11 w-11 absolute -top-1 rounded-full gradient-primary flex items-center justify-center shadow-glow active-scale pulse-ring border-3 border-background bg-card">
                   <item.icon className="h-4.5 w-4.5 text-primary-foreground transform group-hover:rotate-12 transition-transform" />
                 </div>
                 <span className="text-[8px] tracking-tight">

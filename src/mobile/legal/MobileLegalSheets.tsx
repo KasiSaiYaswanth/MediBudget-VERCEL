@@ -264,14 +264,14 @@ const BaseSheet: React.FC<BaseSheetProps> = ({ isOpen, onClose, title, children 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
           {/* Backdrop Layer with Haze filter */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#070e11]/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#070e11]/85 backdrop-blur-sm"
           />
 
           {/* Floating Drawer */}
@@ -279,11 +279,19 @@ const BaseSheet: React.FC<BaseSheetProps> = ({ isOpen, onClose, title, children 
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 220 }}
-            className="relative w-full max-w-md bg-card border-t border-border/60 rounded-t-3xl shadow-2xl p-5 pb-8 overflow-hidden max-h-[85vh] flex flex-col safe-bottom"
+            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.15}
+            onDragEnd={(event, info) => {
+              if (info.offset.y > 120) {
+                onClose();
+              }
+            }}
+            className="relative w-full max-w-md bg-card border-t border-border/60 rounded-t-3xl shadow-2xl p-5 pb-8 overflow-hidden max-h-[85vh] flex flex-col safe-bottom gpu-layer touch-pan-y"
           >
             {/* Native indicator notch */}
-            <div className="mx-auto w-10 h-1 bg-muted-foreground/20 rounded-full mb-4" />
+            <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-4 active:bg-primary/50 transition-colors cursor-grab" />
 
             {/* Header */}
             <div className="flex justify-between items-center mb-4 shrink-0">
@@ -297,7 +305,7 @@ const BaseSheet: React.FC<BaseSheetProps> = ({ isOpen, onClose, title, children 
             </div>
 
             {/* Scrollable body content */}
-            <div className="flex-1 overflow-y-auto pr-1 scroll-bounce scrollbar-thin">
+            <div className="flex-1 overflow-y-auto pr-1 scroll-bounce scrollbar-thin overscroll-contain">
               {children}
             </div>
           </motion.div>
