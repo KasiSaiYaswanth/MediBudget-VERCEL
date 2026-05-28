@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import core datasets directly from desktop page
 import { 
@@ -104,6 +105,42 @@ export const MobileInsuranceCalculator = () => {
       providerName: providerObj?.label || "Unknown",
       policyType: policyObj?.label || "Individual",
     });
+
+    // Save to Supabase cost_estimation_logs in real-time
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.from("cost_estimation_logs").insert({
+          user_id: user.id,
+          condition: `Insurance: ${policyObj?.label || "Policy Estimate"}`,
+          city: providerObj?.label || "Insurer",
+          hospital_type: "Insurance Audit",
+          estimated_cost: tc,
+          insurance_applied: true,
+          insurance_coverage: finalCoverage
+        }).then(({ error }) => {
+          if (error) console.error("Failed to sync insurance estimate to Supabase:", error);
+        });
+      }
+    }).catch(err => console.warn("Supabase auth check failed in insurance calculator:", err));
+
+    // Save to localStorage for robust offline access
+    const savedEstimation = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      condition: `Insurance: ${policyObj?.label || "Policy Estimate"}`,
+      city: providerObj?.label || "Insurer",
+      hospitalType: "Insurance Audit",
+      consultation: 0,
+      tests: Math.round(rawCoverage), // raw insurance coverage
+      medicines: coPaymentAmount, // copay amount
+      treatment: Math.round(deductibleAmount), // deductible amount
+      total: patientPayable,
+      cityMultiplier: 1,
+      hospitalMultiplier: 1,
+    };
+    const existing = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
+    existing.unshift(savedEstimation);
+    localStorage.setItem("estimationHistory", JSON.stringify(existing.slice(0, 50)));
   };
 
   const resetForm = () => {

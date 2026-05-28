@@ -1,46 +1,279 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, History as HistoryIcon, Trash2, IndianRupee, Building2, MapPin, Stethoscope, Share2, Download } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
-import { toast } from "sonner";
+import {
+  ChevronLeft,
+  History as HistoryIcon,
+  Trash2,
+  Edit3,
+  Search,
+  RefreshCw,
+  X,
+  IndianRupee,
+  Building2,
+  MapPin,
+  Stethoscope,
+  Sparkles,
+  Calendar,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  TrendingDown,
+  Info,
+} from "lucide-react";
 
-interface SavedEstimation {
+interface CostLog {
   id: string;
-  date: string;
+  created_at: string;
   condition: string;
-  city: string;
-  hospitalType: string;
-  consultation: number;
-  tests: number;
-  medicines: number;
-  treatment: number;
-  total: number;
-  cityMultiplier: number;
-  hospitalMultiplier: number;
+  city: string | null;
+  hospital_type: string | null;
+  estimated_cost: number;
+  insurance_applied: boolean | null;
+  insurance_coverage: number | null;
+}
+
+interface SymptomLog {
+  id: string;
+  created_at: string;
+  symptom: string;
+  predicted_condition: string | null;
+  confidence_score: number | null;
+  city: string | null;
 }
 
 export const MobileEstimationHistory = () => {
-  const [estimations, setEstimations] = useState<SavedEstimation[]>([]);
+  const [activeTab, setActiveTab] = useState<"estimations" | "symptoms">("estimations");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-    setEstimations(saved);
+  // Data states
+  const [costLogs, setCostLogs] = useState<CostLog[]>([]);
+  const [symptomLogs, setSymptomLogs] = useState<SymptomLog[]>([]);
+
+  // Detailed sheet states
+  const [selectedCost, setSelectedCost] = useState<CostLog | null>(null);
+  const [selectedSymptom, setSelectedSymptom] = useState<SymptomLog | null>(null);
+
+  // Edit states
+  const [editItem, setEditItem] = useState<{ id: string; type: "cost" | "symptom" } | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Load all history logs
+  const fetchLogs = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // Fallback to localStorage if guest user
+        const localEstimations = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
+        const localSymptoms = JSON.parse(localStorage.getItem("symptomHistory") || "[]");
+
+        // Adapt local schema structures to display properly
+        setCostLogs(localEstimations.map((item: any) => ({
+          id: item.id || Date.now().toString(),
+          created_at: item.date || new Date().toISOString(),
+          condition: item.condition,
+          city: item.city,
+          hospital_type: item.hospitalType,
+          estimated_cost: item.total || 0,
+          insurance_applied: item.condition?.toLowerCase().includes("insurance"),
+          insurance_coverage: item.tests || 0 // mapped coverage in local storage format
+        })));
+
+        setSymptomLogs(localSymptoms.map((item: any) => ({
+          id: item.id || Date.now().toString(),
+          created_at: item.date || new Date().toISOString(),
+          symptom: item.symptoms || item.symptom || "Symptom check",
+          predicted_condition: item.analysis || item.condition || "Potential issue",
+          confidence_score: item.confidence || 0.85,
+          city: item.city || "Unknown"
+        })));
+
+        if (isSilent) toast.success("Offline storage synchronized");
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Fetch Estimations from Supabase
+      const { data: costData, error: costError } = await supabase
+        .from("cost_estimation_logs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (costError) throw costError;
+      setCostLogs(costData || []);
+
+      // Fetch Symptom searches from Supabase
+      const { data: symptomData, error: symptomError } = await supabase
+        .from("symptom_searches")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (symptomError) throw symptomError;
+      setSymptomLogs(symptomData || []);
+
+      if (isSilent) toast.success("History database updated");
+    } catch (err: any) {
+      console.error("Failed to query history logs:", err);
+      toast.error("Network issue. Loaded local history instead.");
+
+      // Pull from local storage as emergency backup
+      const localEst = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
+      setCostLogs(localEst.map((item: any) => ({
+        id: item.id,
+        created_at: item.date || new Date().toISOString(),
+        condition: item.condition,
+        city: item.city,
+        hospital_type: item.hospitalType,
+        estimated_cost: item.total || 0,
+        insurance_applied: item.condition?.toLowerCase().includes("insurance"),
+        insurance_coverage: item.tests || 0
+      })));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  const deleteEstimation = (id: string) => {
-    const updated = estimations.filter((e) => e.id !== id);
-    setEstimations(updated);
-    localStorage.setItem("estimationHistory", JSON.stringify(updated));
-    toast.success("Estimation removed from history");
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // DELETE operation
+  const handleDelete = async (id: string, type: "cost" | "symptom", e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent opening details Sheet
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // Fallback local storage remove
+        if (type === "cost") {
+          const updated = costLogs.filter((item) => item.id !== id);
+          setCostLogs(updated);
+          localStorage.setItem("estimationHistory", JSON.stringify(updated.map(c => ({
+            id: c.id,
+            date: c.created_at,
+            condition: c.condition,
+            city: c.city,
+            hospitalType: c.hospital_type,
+            total: c.estimated_cost
+          }))));
+        } else {
+          const updated = symptomLogs.filter((item) => item.id !== id);
+          setSymptomLogs(updated);
+          localStorage.setItem("symptomHistory", JSON.stringify(updated.map(s => ({
+            id: s.id,
+            date: s.created_at,
+            symptoms: s.symptom,
+            analysis: s.predicted_condition,
+            confidence: s.confidence_score
+          }))));
+        }
+        toast.success("Entry removed from storage");
+        return;
+      }
+
+      // Supabase Delete
+      if (type === "cost") {
+        const { error } = await supabase.from("cost_estimation_logs").delete().eq("id", id);
+        if (error) throw error;
+        setCostLogs(costLogs.filter((item) => item.id !== id));
+      } else {
+        const { error } = await supabase.from("symptom_searches").delete().eq("id", id);
+        if (error) throw error;
+        setSymptomLogs(symptomLogs.filter((item) => item.id !== id));
+      }
+
+      toast.success("Entry permanently purged");
+    } catch (err: any) {
+      toast.error("Failed to delete: " + err.message);
+    }
   };
 
-  const clearAll = () => {
-    setEstimations([]);
-    localStorage.removeItem("estimationHistory");
-    toast.success("All estimations cleared");
+  // EDIT / UPDATE operation
+  const openEditDrawer = (id: string, currentVal: string, type: "cost" | "symptom", e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditItem({ id, type });
+    setEditTitle(currentVal);
+  };
+
+  const handleUpdate = async () => {
+    if (!editTitle.trim() || !editItem) return;
+    setEditLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // Fallback Local Update
+        if (editItem.type === "cost") {
+          const updated = costLogs.map((item) => item.id === editItem.id ? { ...item, condition: editTitle } : item);
+          setCostLogs(updated);
+          localStorage.setItem("estimationHistory", JSON.stringify(updated.map(c => ({
+            id: c.id,
+            date: c.created_at,
+            condition: c.condition,
+            city: c.city,
+            hospitalType: c.hospital_type,
+            total: c.estimated_cost
+          }))));
+        } else {
+          const updated = symptomLogs.map((item) => item.id === editItem.id ? { ...item, symptom: editTitle } : item);
+          setSymptomLogs(updated);
+          localStorage.setItem("symptomHistory", JSON.stringify(updated.map(s => ({
+            id: s.id,
+            date: s.created_at,
+            symptoms: s.symptom,
+            analysis: s.predicted_condition,
+            confidence: s.confidence_score
+          }))));
+        }
+        toast.success("Entry renamed locally");
+        setEditItem(null);
+        return;
+      }
+
+      // Supabase Update
+      if (editItem.type === "cost") {
+        const { error } = await supabase
+          .from("cost_estimation_logs")
+          .update({ condition: editTitle })
+          .eq("id", editItem.id);
+        if (error) throw error;
+
+        setCostLogs(costLogs.map((c) => c.id === editItem.id ? { ...c, condition: editTitle } : c));
+      } else {
+        const { error } = await supabase
+          .from("symptom_searches")
+          .update({ symptom: editTitle })
+          .eq("id", editItem.id);
+        if (error) throw error;
+
+        setSymptomLogs(symptomLogs.map((s) => s.id === editItem.id ? { ...s, symptom: editTitle } : s));
+      }
+
+      toast.success("Entry updated on server");
+      setEditItem(null);
+    } catch (err: any) {
+      toast.error("Failed to rename entry: " + err.message);
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const formatDate = (iso: string) => {
@@ -48,112 +281,484 @@ export const MobileEstimationHistory = () => {
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   };
 
-  const exportData = () => {
-    toast.success("CSV report downloaded successfully!");
-  };
+  const formatCurrency = (val: number) => `₹${val.toLocaleString("en-IN")}`;
+
+  // Filters logic
+  const filteredCostLogs = costLogs.filter((log) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      log.condition.toLowerCase().includes(query) ||
+      (log.city && log.city.toLowerCase().includes(query)) ||
+      (log.hospital_type && log.hospital_type.toLowerCase().includes(query))
+    );
+  });
+
+  const filteredSymptomLogs = symptomLogs.filter((log) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      log.symptom.toLowerCase().includes(query) ||
+      (log.predicted_condition && log.predicted_condition.toLowerCase().includes(query))
+    );
+  });
 
   return (
     <MobileDashboardLayout>
       <div className="space-y-4">
         
-        {/* Top Header */}
+        {/* Top Sticky Header */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Link to="/dashboard" className="h-8 w-8 rounded-full bg-secondary/80 flex items-center justify-center text-foreground active-scale shrink-0">
               <ChevronLeft className="h-4.5 w-4.5" />
             </Link>
             <div>
-              <h1 className="text-lg font-black text-foreground">Estimate History</h1>
-              <p className="text-[10px] text-muted-foreground">Past calculated hospitalizations</p>
+              <h1 className="text-lg font-black text-foreground">History Center</h1>
+              <p className="text-[10px] text-muted-foreground">Manage your dynamic audits & symptoms scans</p>
             </div>
           </div>
-          {estimations.length > 0 && (
-            <div className="flex gap-1">
-              <button onClick={exportData} className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center active-scale">
-                <Download className="h-3.5 w-3.5 text-foreground" />
-              </button>
-              <button onClick={clearAll} className="h-7 w-7 rounded-full bg-red-50 flex items-center justify-center active-scale text-red-600">
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
+          <button
+            onClick={() => fetchLogs(true)}
+            disabled={refreshing || loading}
+            className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center active-scale text-foreground shrink-0 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
+          </button>
+        </div>
+
+        {/* Search Bar Input */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={activeTab === "estimations" ? "Search calculations..." : "Search symptoms..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9.5 h-10 text-xs rounded-2xl border border-border/40 bg-card/65 focus:border-primary/50"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3.5 top-3 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
 
-        {estimations.length === 0 ? (
-          <Card className="shadow-sm border border-border/40 bg-card py-10">
-            <CardContent className="text-center space-y-3.5">
-              <HistoryIcon className="h-10 w-10 text-muted-foreground/30 mx-auto animate-pulse" />
-              <div>
-                <h3 className="text-xs font-bold text-foreground">No History Recorded</h3>
-                <p className="text-[9px] text-muted-foreground mt-0.5">Calculated expenses will automatically appear here.</p>
+        {/* Segments/Tabs selector */}
+        <div className="grid grid-cols-2 p-1 rounded-2xl bg-secondary border border-border/40">
+          <button
+            onClick={() => { setActiveTab("estimations"); setSearchQuery(""); }}
+            className={`py-2 rounded-xl text-xs font-bold text-center transition-all ${
+              activeTab === "estimations"
+                ? "bg-card shadow-sm text-primary font-black"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="flex items-center justify-center gap-1.5">
+              <IndianRupee className="h-3.5 w-3.5" /> Cost Estimations
+            </span>
+          </button>
+          <button
+            onClick={() => { setActiveTab("symptoms"); setSearchQuery(""); }}
+            className={`py-2 rounded-xl text-xs font-bold text-center transition-all ${
+              activeTab === "symptoms"
+                ? "bg-card shadow-sm text-primary font-black"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="flex items-center justify-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" /> Symptom AI Scans
+            </span>
+          </button>
+        </div>
+
+        {/* Main List Rendering */}
+        {loading ? (
+          <div className="space-y-3 py-6">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="h-28 w-full rounded-2xl border border-border/40 bg-card/40 animate-pulse flex flex-col p-4 justify-between">
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-28 bg-muted/60 rounded-full" />
+                  <div className="h-5 w-5 bg-muted/60 rounded-full" />
+                </div>
+                <div className="h-3 w-36 bg-muted/60 rounded-full" />
+                <div className="flex gap-2">
+                  <div className="h-8 flex-1 bg-muted/60 rounded-xl" />
+                  <div className="h-8 flex-1 bg-muted/60 rounded-xl" />
+                </div>
               </div>
-              <Link to="/estimate" className="inline-block text-[10px] bg-primary text-white font-bold px-4 py-2 rounded-xl shadow-glow active-scale">
-                Start Cost Estimation
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <AnimatePresence initial={false}>
-            <div className="space-y-3 pb-8">
-              {estimations.map((est) => (
-                <motion.div
-                  key={est.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <Card className="shadow-sm border border-border/40 hover:border-primary/20 transition-all bg-card overflow-hidden">
-                    <CardContent className="p-4 space-y-3">
-                      
-                      {/* Title & Date */}
-                      <div className="flex justify-between items-start gap-2 border-b border-border/40 pb-2">
-                        <div>
-                          <h4 className="text-xs font-black text-foreground flex items-center gap-1">
-                            <Stethoscope className="h-3.5 w-3.5 text-primary shrink-0" />
-                            {est.condition}
-                          </h4>
-                          <span className="text-[8px] text-muted-foreground mt-0.5 block">{formatDate(est.date)}</span>
-                        </div>
-                        <button onClick={() => deleteEstimation(est.id)} className="h-6 w-6 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0 active-scale">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-
-                      {/* Location details */}
-                      <div className="grid grid-cols-2 gap-2 text-[9px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {est.city}</span>
-                        <span className="flex items-center gap-1"><Building2 className="h-3 w-3" /> {est.hospitalType}</span>
-                      </div>
-
-                      {/* Summary list */}
-                      <div className="grid grid-cols-5 gap-1 pt-1.5">
-                        {[
-                          { name: "Consult", val: est.consultation },
-                          { name: "Tests", val: est.tests },
-                          { name: "Med", val: est.medicines },
-                          { name: "Surg", val: est.treatment },
-                          { name: "Total", val: est.total, highlighted: true },
-                        ].map((cell) => (
-                          <div key={cell.name} className={`p-1 text-center rounded-xl border ${
-                            cell.highlighted ? "border-primary/20 bg-primary/5" : "border-border/40 bg-secondary/35"
-                          }`}>
-                            <p className="text-[7px] text-muted-foreground font-semibold uppercase">{cell.name}</p>
-                            <p className={`text-[9px] font-black mt-0.5 truncate ${cell.highlighted ? "text-primary text-[10px]" : "text-foreground"}`}>
-                              ₹{cell.val.toLocaleString("en-IN")}
-                            </p>
+            ))}
+          </div>
+        ) : activeTab === "estimations" ? (
+          filteredCostLogs.length === 0 ? (
+            <Card className="shadow-sm border border-border/40 py-12 text-center bg-card">
+              <CardContent className="space-y-3.5">
+                <HistoryIcon className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+                <div>
+                  <h3 className="text-xs font-bold text-foreground">No Estimations Found</h3>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Calculated expenses will appear here.</p>
+                </div>
+                <Link to="/estimate" className="inline-block text-[10px] bg-primary text-white font-bold px-4 py-2 rounded-xl shadow-glow active-scale">
+                  Create First Estimate
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <AnimatePresence initial={false}>
+              <div className="space-y-3 pb-24">
+                {filteredCostLogs.map((log) => {
+                  const isInsurance = log.insurance_applied;
+                  return (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setSelectedCost(log)}
+                      className="active-scale cursor-pointer"
+                    >
+                      <Card className={`shadow-sm border transition-all overflow-hidden ${
+                        isInsurance ? "border-emerald-500/20 hover:border-emerald-500/30" : "border-border/40 hover:border-primary/20"
+                      }`}>
+                        <CardContent className="p-4 space-y-3">
+                          
+                          {/* Title header */}
+                          <div className="flex justify-between items-start gap-2 border-b border-border/30 pb-2">
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-foreground flex items-center gap-1.5 truncate">
+                                {isInsurance ? (
+                                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                ) : (
+                                  <Stethoscope className="h-3.5 w-3.5 text-primary shrink-0" />
+                                )}
+                                {log.condition}
+                              </h4>
+                              <span className="text-[8px] text-muted-foreground mt-0.5 block flex items-center gap-1">
+                                <Calendar className="h-2.5 w-2.5" /> {formatDate(log.created_at)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => openEditDrawer(log.id, log.condition, "cost", e)}
+                                className="h-6 w-6 rounded-full bg-secondary hover:bg-muted text-muted-foreground flex items-center justify-center shrink-0 active-scale"
+                              >
+                                <Edit3 className="h-2.5 w-2.5" />
+                              </button>
+                              <button
+                                onClick={(e) => handleDelete(log.id, "cost", e)}
+                                className="h-6 w-6 rounded-full bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center shrink-0 active-scale"
+                              >
+                                <Trash2 className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
                           </div>
-                        ))}
-                      </div>
 
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </AnimatePresence>
+                          {/* Stats details */}
+                          <div className="flex justify-between items-center text-[10px]">
+                            <div className="space-y-0.5">
+                              <p className="text-[8px] text-muted-foreground uppercase font-semibold">City & Hospital</p>
+                              <p className="font-bold text-foreground truncate max-w-[150px] flex items-center gap-0.5">
+                                <MapPin className="h-2.5 w-2.5 text-muted-foreground" /> {log.city || "Unknown City"}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[8px] text-muted-foreground uppercase font-semibold">
+                                {isInsurance ? "Patient Payable" : "Estimated Cost"}
+                              </p>
+                              <p className={`font-black text-xs ${isInsurance ? "text-emerald-500" : "text-primary"}`}>
+                                {formatCurrency(log.estimated_cost)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Insurance highlight tag if active */}
+                          {isInsurance && log.insurance_coverage !== null && (
+                            <div className="bg-emerald-500/5 border border-emerald-500/10 px-2 py-1 rounded-xl text-[9px] text-emerald-600 font-bold flex justify-between">
+                              <span>Provider Covered Share:</span>
+                              <span>{formatCurrency(log.insurance_coverage)}</span>
+                            </div>
+                          )}
+
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </AnimatePresence>
+          )
+        ) : (
+          // Symptoms tab
+          filteredSymptomLogs.length === 0 ? (
+            <Card className="shadow-sm border border-border/40 py-12 text-center bg-card">
+              <CardContent className="space-y-3.5">
+                <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+                <div>
+                  <h3 className="text-xs font-bold text-foreground">No Symptom AI Scans Found</h3>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">AI predictions will be cached here.</p>
+                </div>
+                <Link to="/symptoms" className="inline-block text-[10px] bg-primary text-white font-bold px-4 py-2 rounded-xl shadow-glow active-scale">
+                  Start Symptom Audit
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <AnimatePresence initial={false}>
+              <div className="space-y-3 pb-24">
+                {filteredSymptomLogs.map((log) => {
+                  return (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setSelectedSymptom(log)}
+                      className="active-scale cursor-pointer"
+                    >
+                      <Card className="shadow-sm border border-border/40 hover:border-primary/20 transition-all bg-card overflow-hidden">
+                        <CardContent className="p-4 space-y-2.5">
+                          
+                          {/* Title header */}
+                          <div className="flex justify-between items-start gap-2 border-b border-border/30 pb-2">
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-foreground flex items-center gap-1.5 truncate">
+                                <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                                {log.symptom}
+                              </h4>
+                              <span className="text-[8px] text-muted-foreground mt-0.5 block flex items-center gap-1">
+                                <Calendar className="h-2.5 w-2.5" /> {formatDate(log.created_at)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => openEditDrawer(log.id, log.symptom, "symptom", e)}
+                                className="h-6 w-6 rounded-full bg-secondary hover:bg-muted text-muted-foreground flex items-center justify-center shrink-0 active-scale"
+                              >
+                                <Edit3 className="h-2.5 w-2.5" />
+                              </button>
+                              <button
+                                onClick={(e) => handleDelete(log.id, "symptom", e)}
+                                className="h-6 w-6 rounded-full bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center shrink-0 active-scale"
+                              >
+                                <Trash2 className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Prediction breakdown */}
+                          <div className="flex justify-between items-end text-[10px]">
+                            <div className="space-y-0.5">
+                              <p className="text-[8px] text-muted-foreground uppercase font-semibold">AI Predicted Condition</p>
+                              <p className="font-bold text-foreground truncate max-w-[170px]">{log.predicted_condition || "Analyzing..."}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[8px] text-muted-foreground block mb-0.5">AI Confidence</span>
+                              <span className="bg-primary/10 text-primary font-black px-2 py-0.5 rounded-full text-[9px]">
+                                {log.confidence_score ? Math.round(log.confidence_score * 100) : 85}%
+                              </span>
+                            </div>
+                          </div>
+
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </AnimatePresence>
+          )
         )}
 
       </div>
+
+      {/* RENDER BOTTOM DETAILS DRAWER (COST LOGS) */}
+      <AnimatePresence>
+        {selectedCost && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedCost(null)} className="absolute inset-0 bg-[#070e11]/80 backdrop-blur-sm" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }} className="relative w-full max-w-md bg-card border-t border-border/60 rounded-t-3xl p-5 pb-8 safe-bottom flex flex-col max-h-[80vh]">
+              <div className="mx-auto w-10 h-1 bg-muted-foreground/20 rounded-full mb-3 shrink-0" />
+              
+              <div className="flex justify-between items-start mb-4 shrink-0 border-b border-border/30 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
+                    {selectedCost.insurance_applied ? (
+                      <ShieldCheck className="h-4.5 w-4.5 text-emerald-500" />
+                    ) : (
+                      <Stethoscope className="h-4.5 w-4.5 text-primary" />
+                    )}
+                    {selectedCost.condition}
+                  </h3>
+                  <p className="text-[9px] text-muted-foreground flex items-center gap-1 mt-0.5"><Clock className="h-3 w-3" /> Calculated on {formatDate(selectedCost.created_at)}</p>
+                </div>
+                <button onClick={() => setSelectedCost(null)} className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center text-foreground active-scale"><X className="h-4 w-4" /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                {selectedCost.insurance_applied ? (
+                  // Detailed insurance breakdown
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                        <p className="text-[9px] text-muted-foreground">Insurer Cover</p>
+                        <p className="text-lg font-black text-emerald-600 mt-0.5">{formatCurrency(selectedCost.insurance_coverage || 0)}</p>
+                      </div>
+                      <div className="text-center p-3 rounded-2xl bg-destructive/5 border border-destructive/10">
+                        <p className="text-[9px] text-muted-foreground">Patient Out-of-Pocket</p>
+                        <p className="text-lg font-black text-destructive mt-0.5">{formatCurrency(selectedCost.estimated_cost)}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/40 divide-y divide-border/40 text-xs">
+                      <div className="flex justify-between p-3">
+                        <span className="text-muted-foreground">Insurers Company</span>
+                        <span className="font-bold text-foreground">{selectedCost.city || "Star Health"}</span>
+                      </div>
+                      <div className="flex justify-between p-3">
+                        <span className="text-muted-foreground">Audited Procedure Cost</span>
+                        <span className="font-bold text-foreground">{formatCurrency((selectedCost.insurance_coverage || 0) + selectedCost.estimated_cost)}</span>
+                      </div>
+                      <div className="flex justify-between p-3">
+                        <span className="text-muted-foreground">Provider Share Paid</span>
+                        <span className="font-bold text-emerald-600">{formatCurrency(selectedCost.insurance_coverage || 0)}</span>
+                      </div>
+                      <div className="flex justify-between p-3 bg-red-500/5 font-black text-destructive">
+                        <span>Patient Copays / Deductibles</span>
+                        <span>{formatCurrency(selectedCost.estimated_cost)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Detailed hospitalization breakdown
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Estimated Cost Audited</p>
+                      <p className="text-3xl font-black text-primary mt-1">{formatCurrency(selectedCost.estimated_cost)}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/40 divide-y divide-border/40 text-xs">
+                      <div className="flex justify-between p-3">
+                        <span className="text-muted-foreground">Regional Target City</span>
+                        <span className="font-bold text-foreground">{selectedCost.city || "Unknown City"}</span>
+                      </div>
+                      <div className="flex justify-between p-3">
+                        <span className="text-muted-foreground">Hospital Facility Type</span>
+                        <span className="font-bold text-foreground">{selectedCost.hospital_type || "Private General"}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-secondary/40 p-3.5 rounded-2xl flex items-start gap-2.5 border border-border/20">
+                      <Info className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        Procedural multiplier values are calculated against Tier 1 base standards. Always confirm direct billing eligibility with the reception desk before admission.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* RENDER BOTTOM DETAILS DRAWER (SYMPTOM LOGS) */}
+      <AnimatePresence>
+        {selectedSymptom && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedSymptom(null)} className="absolute inset-0 bg-[#070e11]/80 backdrop-blur-sm" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }} className="relative w-full max-w-md bg-card border-t border-border/60 rounded-t-3xl p-5 pb-8 safe-bottom flex flex-col max-h-[80vh]">
+              <div className="mx-auto w-10 h-1 bg-muted-foreground/20 rounded-full mb-3 shrink-0" />
+              
+              <div className="flex justify-between items-start mb-4 shrink-0 border-b border-border/30 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-4.5 w-4.5 text-primary" />
+                    Symptom AI Audit
+                  </h3>
+                  <p className="text-[9px] text-muted-foreground flex items-center gap-1 mt-0.5"><Clock className="h-3 w-3" /> Checked on {formatDate(selectedSymptom.created_at)}</p>
+                </div>
+                <button onClick={() => setSelectedSymptom(null)} className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center text-foreground active-scale"><X className="h-4 w-4" /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div className="space-y-1">
+                  <p className="text-[9px] text-muted-foreground uppercase font-black px-1">Your Stated Symptoms</p>
+                  <div className="p-3.5 rounded-2xl bg-secondary/60 border border-border/40 text-xs font-semibold text-foreground leading-relaxed">
+                    "{selectedSymptom.symptom}"
+                  </div>
+                </div>
+
+                <div className="space-y-4 mt-3">
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10">
+                      <p className="text-[9px] text-muted-foreground">Predicted Condition</p>
+                      <p className="font-black text-xs text-primary mt-1 truncate">{selectedSymptom.predicted_condition || "General Issue"}</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10">
+                      <p className="text-[9px] text-muted-foreground">AI Confidence Score</p>
+                      <p className="font-black text-xs text-primary mt-1">{selectedSymptom.confidence_score ? Math.round(selectedSymptom.confidence_score * 100) : 85}%</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/40 p-4 space-y-3">
+                    <h4 className="text-[10px] text-muted-foreground uppercase font-black">AI Recommendations</h4>
+                    <p className="text-xs font-semibold text-foreground leading-relaxed flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      Consult standard General Physician clinic.
+                    </p>
+                    <p className="text-xs font-semibold text-foreground leading-relaxed flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      Crosscheck generic medications on OCR scanner.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-red-500/5 border border-red-500/10 text-center">
+                    <p className="text-[9px] leading-relaxed text-muted-foreground/80 font-medium">
+                      ⚕️ Estimates only. Does not substitute professional medical diagnosis. Consult a qualified clinical specialist before taking decisions.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* RENDER EDIT TITLE SHEET (RENAME DRAWER) */}
+      <AnimatePresence>
+        {editItem && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditItem(null)} className="absolute inset-0 bg-[#070e11]/80 backdrop-blur-sm" />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }} className="relative w-full max-w-md bg-card border-t border-border/60 rounded-t-3xl p-5 pb-8 safe-bottom flex flex-col">
+              <div className="mx-auto w-10 h-1 bg-muted-foreground/20 rounded-full mb-3 shrink-0" />
+              
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
+                  Rename Entry Title
+                </h3>
+                <button onClick={() => setEditItem(null)} className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center text-foreground active-scale"><X className="h-4 w-4" /></button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider px-1">Entry Title</label>
+                  <Input
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="h-11 text-xs rounded-xl focus:border-primary/50"
+                  />
+                </div>
+                <Button
+                  onClick={handleUpdate}
+                  disabled={editLoading || !editTitle.trim()}
+                  className="w-full h-10 text-xs font-bold"
+                >
+                  {editLoading ? "Updating..." : "Save Changes"}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </MobileDashboardLayout>
   );
 };

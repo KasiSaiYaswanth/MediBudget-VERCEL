@@ -11,6 +11,7 @@ import CostResults from "@/components/estimation/CostResults";
 import NearbyHospitals from "@/components/estimation/NearbyHospitals";
 import ConditionAnalyzer from "@/components/estimation/ConditionAnalyzer";
 import { matchCityToList } from "@/lib/locationService";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import core datasets directly from desktop component to ensure sync
 import { conditions, sortedStates, cityGroups, hospitalTypes, type EstimationResult } from "@/pages/CostEstimation";
@@ -69,7 +70,24 @@ export const MobileCostEstimation = () => {
       recommendedMedicines: cond.recommendedMedicines,
     });
 
-    // Save to localStorage
+    // Save to Supabase cost_estimation_logs in real-time
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.from("cost_estimation_logs").insert({
+          user_id: user.id,
+          condition: cond.label,
+          city: `${c.label}, ${c.state}`,
+          hospital_type: h.label,
+          estimated_cost: total,
+          insurance_applied: false,
+          insurance_coverage: 0
+        }).then(({ error }) => {
+          if (error) console.error("Failed to sync cost estimation log to Supabase:", error);
+        });
+      }
+    }).catch(err => console.warn("Supabase auth check failed in cost estimator:", err));
+
+    // Save to localStorage for robust offline access
     const savedEstimation = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
