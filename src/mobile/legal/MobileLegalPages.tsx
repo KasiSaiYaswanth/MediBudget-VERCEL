@@ -6,7 +6,8 @@ import {
   ShieldAlert, 
   ChevronDown, 
   Mail, 
-  MailCheck 
+  MailCheck,
+  MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -256,13 +257,28 @@ export const MobileSupportPage: React.FC = () => {
   const handleFeedback = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
+
+    // Prefill mailto with details of the support feedback form
+    const subject = encodeURIComponent("MediBudget Support Request - Technical Support");
+    const body = encodeURIComponent(
+      `Hello MediBudget Support,\n\nI need assistance regarding the application. Here is my query:\n\n"${message}"\n\n---\nPlatform: Android Mobile App\nVersion: 1.2.0 (Build 41)`
+    );
+    
+    // Launch default email client
+    window.location.href = `mailto:medibudget@gmail.com?subject=${subject}&body=${body}`;
+
     setSubmitted(true);
     setTimeout(() => {
       setMessage("");
       setSubmitted(false);
       navigate("/settings");
-    }, 1800);
+    }, 2000);
   };
+
+  const emailSubject = encodeURIComponent("MediBudget Support Request - Technical Support");
+  const emailBody = encodeURIComponent(
+    `Hello MediBudget Support,\n\nI am using the MediBudget mobile application and would like to request technical support.\n\n---\nPlatform: Android Mobile App\nVersion: 1.2.0 (Build 41)`
+  );
 
   return (
     <MobileSettingsPageLayout title="Contact Support">
@@ -276,50 +292,77 @@ export const MobileSupportPage: React.FC = () => {
             <MailCheck className="h-7 w-7" />
           </div>
           <div>
-            <p className="font-bold text-foreground text-sm">Feedback Submitted!</p>
+            <p className="font-bold text-foreground text-sm">Email Client Opened!</p>
             <p className="text-xs text-muted-foreground mt-1 px-6 leading-relaxed">
-              Thank you! Our support operations team will check and follow up shortly.
+              We have launched your system's email application with your prefilled query. Please tap send in your email app.
             </p>
           </div>
         </motion.div>
       ) : (
-        <form onSubmit={handleFeedback} className="space-y-5">
+        <div className="space-y-5">
           <div className="space-y-1.5">
             <p className="text-xs font-bold text-foreground">Technical Support & General Inquiries</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Have questions, found a billing mismatch, or need technical assistance? Email us directly or drop a quick feedback note below.
+              Have questions, found a billing mismatch, or need technical assistance? Reach our dedicated support team instantly.
             </p>
           </div>
 
-          <a
-            href="mailto:medibudget@gmail.com"
-            className="flex items-center gap-3.5 p-4 rounded-2xl bg-card border border-border/40 text-xs text-foreground active-scale hover:bg-secondary/20 transition-colors shadow-sm"
-          >
-            <div className="h-9 w-9 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400 shrink-0">
-              <Mail className="h-5 w-5" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold">Email Support Directly</p>
-              <p className="text-[11px] text-teal-400 font-bold">medibudget@gmail.com</p>
-            </div>
-          </a>
+          <div className="grid grid-cols-1 gap-3.5">
+            {/* Email Support directly */}
+            <a
+              href={`mailto:medibudget@gmail.com?subject=${emailSubject}&body=${emailBody}`}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              className="flex items-center gap-3.5 p-4 rounded-2xl bg-card border border-border/40 text-xs text-foreground active-scale hover:bg-secondary/20 transition-colors shadow-sm"
+            >
+              <div className="h-9 w-9 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400 shrink-0">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-foreground">Email Support Directly</p>
+                <p className="text-[11px] text-teal-400 font-bold">medibudget@gmail.com</p>
+              </div>
+            </a>
 
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider px-1">Quick Feedback Note</label>
-            <textarea
-              required
-              rows={4}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="How can we help optimize your MediBudget experience today?"
-              className="w-full rounded-2xl border border-border/40 bg-card p-4 text-xs text-foreground focus:outline-none focus:border-teal-400 placeholder:text-muted-foreground/60 resize-none shadow-sm"
-            />
+            {/* Premium WhatsApp Support option */}
+            <a
+              href="https://wa.me/919381987307?text=Hello%20MediBudget%20Support%2C%20I%20need%20assistance%20regarding%20the%20application."
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              className="flex items-center gap-3.5 p-4 rounded-2xl bg-card border border-green-500/20 text-xs text-foreground active-scale hover:bg-green-500/5 transition-colors shadow-sm"
+            >
+              <div className="h-9 w-9 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400 shrink-0">
+                <MessageCircle className="h-5 w-5 text-green-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-foreground">Chat on WhatsApp</p>
+                <p className="text-[11px] text-green-400 font-bold">+91 93819 87307</p>
+              </div>
+            </a>
           </div>
 
-          <Button type="submit" className="w-full h-11 text-xs font-bold rounded-2xl">
-            Submit Feedback Note
-          </Button>
-        </form>
+          <form onSubmit={handleFeedback} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider px-1">Quick Feedback Note</label>
+              <textarea
+                required
+                rows={4}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="How can we help optimize your MediBudget experience today?"
+                className="w-full rounded-2xl border border-border/40 bg-card p-4 text-xs text-foreground focus:outline-none focus:border-teal-400 placeholder:text-muted-foreground/60 resize-none shadow-sm"
+              />
+            </div>
+
+            <Button type="submit" className="w-full h-11 text-xs font-bold rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground">
+              Send Email Query
+            </Button>
+          </form>
+        </div>
       )}
     </MobileSettingsPageLayout>
   );

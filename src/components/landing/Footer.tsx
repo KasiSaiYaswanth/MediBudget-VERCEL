@@ -41,7 +41,15 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact Us</Link></li>
               <li><Link to="/faq" className="hover:text-foreground transition-colors">FAQ</Link></li>
-              <li><a href="mailto:medibudget@gmail.com" className="hover:text-foreground transition-colors">medibudget@gmail.com</a></li>
+              <li>
+                <a 
+                  href="mailto:medibudget@gmail.com?subject=MediBudget%20General%20Inquiry" 
+                  className="hover:text-foreground transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  medibudget@gmail.com
+                </a>
+              </li>
             </ul>
           </div>
         </div>

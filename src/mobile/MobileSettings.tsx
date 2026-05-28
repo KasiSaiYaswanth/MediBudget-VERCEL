@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
 import { clearAllCache } from "@/lib/offlineStorage";
+import { downloadFile } from "@/lib/fileDownloader";
 
 // Settings sub-pages are lazy loaded as independent full routes
 export const MobileSettings = () => {
@@ -96,15 +97,11 @@ export const MobileSettings = () => {
         }
       };
 
-      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `medibudget-mobile-export.json`;
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      toast.success("JSON data downloaded successfully!");
+      await downloadFile({
+        fileName: `medibudget-mobile-export.json`,
+        content: JSON.stringify(exportPayload, null, 2),
+        mimeType: "application/json"
+      });
     } catch (err: any) {
       toast.error("Export failed: " + err.message);
     } finally {
