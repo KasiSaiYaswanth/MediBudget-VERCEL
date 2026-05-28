@@ -95,7 +95,6 @@ const DownloadAndroidSection = () => {
                       <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">
                         v1.0.4 Stable
                       </Badge>
-                      <span className="text-[10px] text-muted-foreground font-semibold">Size: ~2.4 MB</span>
                     </div>
                   </div>
 
