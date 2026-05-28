@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Sparkles, Scan, Calculator, Settings } from "lucide-react";
+import { LayoutDashboard, Sparkles, Scan, Shield, History, Settings } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -13,7 +13,8 @@ const navItems: NavItem[] = [
   { label: "Home", path: "/dashboard", icon: LayoutDashboard },
   { label: "AI Chat", path: "/symptoms", icon: Sparkles },
   { label: "Scan", path: "/scanner", icon: Scan, isFab: true },
-  { label: "Estimate", path: "/estimate", icon: Calculator },
+  { label: "Insurance", path: "/insurance", icon: Shield },
+  { label: "History", path: "/history", icon: History },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 
@@ -22,7 +23,7 @@ export const BottomNavigation: React.FC = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 mobile-glass safe-bottom border-t border-border/40 pb-2">
-      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-4 relative">
+      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2 relative">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
 
@@ -31,12 +32,12 @@ export const BottomNavigation: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className="relative -top-5 flex flex-col items-center justify-center z-50 group"
+                className="relative -top-5 flex flex-col items-center justify-center z-50 group shrink-0"
               >
-                <div className="h-14 w-14 rounded-full gradient-primary flex items-center justify-center shadow-glow active-scale pulse-ring">
-                  <item.icon className="h-6 w-6 text-primary-foreground transform group-hover:rotate-12 transition-transform" />
+                <div className="h-13 w-13 rounded-full gradient-primary flex items-center justify-center shadow-glow active-scale pulse-ring">
+                  <item.icon className="h-5.5 w-5.5 text-primary-foreground transform group-hover:rotate-12 transition-transform" />
                 </div>
-                <span className="text-[10px] font-semibold text-primary mt-1">
+                <span className="text-[9px] font-bold text-primary mt-1">
                   {item.label}
                 </span>
               </Link>
@@ -47,12 +48,12 @@ export const BottomNavigation: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center w-12 h-12 transition-all active-scale ${
-                isActive ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground"
+              className={`flex flex-col items-center justify-center w-11 h-11 transition-all active-scale shrink-0 ${
+                isActive ? "text-primary scale-105 font-bold" : "text-muted-foreground hover:text-foreground font-semibold"
               }`}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="text-[9px] font-medium mt-1">{item.label}</span>
+              <item.icon className="h-4.5 w-4.5" />
+              <span className="text-[8px] mt-1 tracking-tight">{item.label}</span>
               {isActive && (
                 <div className="w-1 h-1 rounded-full bg-primary mt-0.5 animate-pulse" />
               )}
