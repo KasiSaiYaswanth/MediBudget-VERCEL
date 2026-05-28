@@ -95,11 +95,8 @@ const ContactUs = () => {
               <div>
                 <h3 className="font-semibold text-sm text-foreground mb-1">Email Support</h3>
                 <a
-                  href={`mailto:${SUPPORT_EMAIL}`}
+                  href={`mailto:${SUPPORT_EMAIL}?subject=MediBudget%20Support`}
                   className="text-sm text-primary hover:underline break-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
                 >
                   {SUPPORT_EMAIL}
                 </a>

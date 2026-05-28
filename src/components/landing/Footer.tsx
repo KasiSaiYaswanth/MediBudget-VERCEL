@@ -43,11 +43,8 @@ const Footer = () => {
               <li><Link to="/faq" className="hover:text-foreground transition-colors">FAQ</Link></li>
               <li>
                 <a 
-                  href="mailto:medibudget@gmail.com?subject=MediBudget%20General%20Inquiry" 
+                  href="mailto:medibudget@gmail.com?subject=MediBudget%20Support" 
                   className="hover:text-foreground transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
                 >
                   medibudget@gmail.com
                 </a>
