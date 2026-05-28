@@ -17,11 +17,17 @@ export const AuthRedirectHandler = () => {
   const triggerDeepLink = (hash: string) => {
     if (!hash) return;
     console.log("Triggering deep link via user gesture:", hash);
-    window.location.href = `com.medibudget.app://login${hash}`;
-    
-    setTimeout(() => {
-      window.location.href = `medibudget://auth/callback${hash}`;
-    }, 150);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      const queryParams = hash.replace(/^#/, "?");
+      window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+    } else {
+      window.location.href = `com.medibudget.app://login${hash}`;
+      
+      setTimeout(() => {
+        window.location.href = `medibudget://auth/callback${hash}`;
+      }, 150);
+    }
   };
 
   // 1. Intercept URL hash callback parameters directly upon mount or route changes
@@ -35,11 +41,17 @@ export const AuthRedirectHandler = () => {
         setHashFragment(hash);
         setShowMobileBridge(true);
         
-        // Attempt immediate silent redirection (Chrome might block this, which is why we show the tap button)
-        window.location.href = `com.medibudget.app://login${hash}`;
-        setTimeout(() => {
-          window.location.href = `medibudget://auth/callback${hash}`;
-        }, 100);
+        // Attempt immediate silent redirection using best platform strategy
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid) {
+          const queryParams = hash.replace(/^#/, "?");
+          window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+        } else {
+          window.location.href = `com.medibudget.app://login${hash}`;
+          setTimeout(() => {
+            window.location.href = `medibudget://auth/callback${hash}`;
+          }, 100);
+        }
         return;
       }
     }
@@ -62,10 +74,16 @@ export const AuthRedirectHandler = () => {
               setShowMobileBridge(true);
               
               // Attempt immediate silent redirection
-              window.location.href = `com.medibudget.app://login${hashFragmentStr}`;
-              setTimeout(() => {
-                window.location.href = `medibudget://auth/callback${hashFragmentStr}`;
-              }, 100);
+              const isAndroid = /Android/i.test(navigator.userAgent);
+              if (isAndroid) {
+                const queryParams = hashFragmentStr.replace(/^#/, "?");
+                window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+              } else {
+                window.location.href = `com.medibudget.app://login${hashFragmentStr}`;
+                setTimeout(() => {
+                  window.location.href = `medibudget://auth/callback${hashFragmentStr}`;
+                }, 100);
+              }
               return;
             }
           }
@@ -92,6 +110,28 @@ export const AuthRedirectHandler = () => {
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
 
+  const getDeepLinkUrl = () => {
+    if (!hashFragment) return "#";
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      const queryParams = hashFragment.replace(/^#/, "?");
+      return `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;end`;
+    }
+    return `com.medibudget.app://login${hashFragment}`;
+  };
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (!isAndroid) {
+      e.preventDefault();
+      const hash = hashFragment;
+      window.location.href = `com.medibudget.app://login${hash}`;
+      setTimeout(() => {
+        window.location.href = `medibudget://auth/callback${hash}`;
+      }, 150);
+    }
+  };
+
   // Render high-fidelity OAuth bridge overlay for mobile clients
   if (showMobileBridge) {
     return (
@@ -117,13 +157,14 @@ export const AuthRedirectHandler = () => {
 
         {/* Pulse action button */}
         <div className="w-full max-w-[280px] flex flex-col items-center space-y-4 mb-10">
-          <button
-            onClick={() => triggerDeepLink(hashFragment)}
+          <a
+            href={getDeepLinkUrl()}
+            onClick={handleLinkClick}
             className="w-full h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-[#070e11] font-black text-xs shadow-lg shadow-teal-400/25 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5"
           >
             Open MediBudget App
             <ArrowRight className="h-4 w-4" />
-          </button>
+          </a>
           <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider">
             Resolves Google Chrome Security Guards
           </span>
