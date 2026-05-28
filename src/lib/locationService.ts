@@ -751,10 +751,18 @@ export function matchCityToList(
     if (valueMatch) return valueMatch.value;
   }
 
-  // We explicitly DO NOT automatically match the first city in the state as a fallback,
-  // because cost multipliers (economy tiers vs premium cities) vary drastically within
-  // the same state (e.g., Mumbai vs Nagpur). Silently setting the first city in the state
-  // results in highly inaccurate estimations. Instead, we let the user manually select the closest city.
+  // State-based fallback: if we cannot match the city name, match the closest represented metropolitan city in the same state
+  if (ds) {
+    const stateMatch = citiesList.find(
+      (c) =>
+        c.state.toLowerCase().includes(ds) ||
+        ds.includes(c.state.toLowerCase())
+    );
+    if (stateMatch) {
+      console.log(`Fuzzy mapped detected location (${detectedCity}) to closest represented state hub: ${stateMatch.label}`);
+      return stateMatch.value;
+    }
+  }
 
   return null;
 }
