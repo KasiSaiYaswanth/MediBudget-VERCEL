@@ -45,7 +45,11 @@ const Footer = () => {
                 <a 
                   href="mailto:medibudget@gmail.com?subject=MediBudget%20General%20Inquiry" 
                   className="hover:text-foreground transition-colors"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = "mailto:medibudget@gmail.com?subject=MediBudget%20General%20Inquiry";
+                  }}
                 >
                   medibudget@gmail.com
                 </a>

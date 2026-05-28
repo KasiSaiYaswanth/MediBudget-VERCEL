@@ -55,7 +55,7 @@ const ContactUs = () => {
     const mailtoBody = encodeURIComponent(
       `Name: ${result.data.name}\nEmail: ${result.data.email}\n\n${result.data.message}`
     );
-    window.open(`mailto:${SUPPORT_EMAIL}?subject=${mailtoSubject}&body=${mailtoBody}`, "_self");
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${mailtoSubject}&body=${mailtoBody}`;
 
     await new Promise((r) => setTimeout(r, 800));
     setLoading(false);
@@ -97,6 +97,11 @@ const ContactUs = () => {
                 <a
                   href={`mailto:${SUPPORT_EMAIL}`}
                   className="text-sm text-primary hover:underline break-all"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = `mailto:${SUPPORT_EMAIL}`;
+                  }}
                 >
                   {SUPPORT_EMAIL}
                 </a>
