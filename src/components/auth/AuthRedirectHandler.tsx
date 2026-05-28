@@ -1,14 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/lib/adminService";
 import { toast } from "sonner";
+import { Pill, Sparkles, ArrowRight } from "lucide-react";
 
 const PUBLIC_ROUTES = ["/", "/login", "/signup", "/privacy", "/terms", "/disclaimer", "/contact", "/faq", "/install"];
 
 export const AuthRedirectHandler = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const [showMobileBridge, setShowMobileBridge] = useState(false);
+  const [hashFragment, setHashFragment] = useState("");
+
+  const triggerDeepLink = (hash: string) => {
+    if (!hash) return;
+    console.log("Triggering deep link via user gesture:", hash);
+    window.location.href = `com.medibudget.app://login${hash}`;
+    
+    setTimeout(() => {
+      window.location.href = `medibudget://auth/callback${hash}`;
+    }, 150);
+  };
 
   // 1. Intercept URL hash callback parameters directly upon mount or route changes
   useEffect(() => {
@@ -17,13 +31,15 @@ export const AuthRedirectHandler = () => {
 
     if (hash && (hash.includes("access_token=") || hash.includes("refresh_token="))) {
       if (isMobileUserAgent) {
-        console.log("Mobile auth callback hash detected on Vercel. Redirecting to native app...");
-        window.location.href = `com.medibudget.app://login${hash}`;
+        console.log("Mobile auth callback hash detected on Vercel. Mounting Redirect Bridge...");
+        setHashFragment(hash);
+        setShowMobileBridge(true);
         
-        // Secondary fallback deep link
+        // Attempt immediate silent redirection (Chrome might block this, which is why we show the tap button)
+        window.location.href = `com.medibudget.app://login${hash}`;
         setTimeout(() => {
           window.location.href = `medibudget://auth/callback${hash}`;
-        }, 150);
+        }, 100);
         return;
       }
     }
@@ -40,14 +56,16 @@ export const AuthRedirectHandler = () => {
             const accessToken = session.access_token;
             const refreshToken = session.refresh_token;
             if (accessToken && refreshToken) {
-              const hashFragment = `#access_token=${accessToken}&refresh_token=${refreshToken}`;
+              const hashFragmentStr = `#access_token=${accessToken}&refresh_token=${refreshToken}`;
               console.log("Mobile session established on Vercel. Deep linking to native app...");
-              window.location.href = `com.medibudget.app://login${hashFragment}`;
+              setHashFragment(hashFragmentStr);
+              setShowMobileBridge(true);
               
-              // Secondary fallback deep link
+              // Attempt immediate silent redirection
+              window.location.href = `com.medibudget.app://login${hashFragmentStr}`;
               setTimeout(() => {
-                window.location.href = `medibudget://auth/callback${hashFragment}`;
-              }, 150);
+                window.location.href = `medibudget://auth/callback${hashFragmentStr}`;
+              }, 100);
               return;
             }
           }
@@ -73,6 +91,46 @@ export const AuthRedirectHandler = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
+
+  // Render high-fidelity OAuth bridge overlay for mobile clients
+  if (showMobileBridge) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-[#070e11] flex flex-col justify-between items-center p-6 text-white select-none">
+        <div />
+
+        {/* Pulsing branding logo */}
+        <div className="flex flex-col items-center space-y-5 text-center">
+          <div className="h-16 w-16 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-2xl shadow-emerald-500/20 relative animate-pulse">
+            <Pill className="h-8 w-8 text-white rotate-45" />
+          </div>
+          
+          <div className="space-y-2.5">
+            <h1 className="text-xl font-black text-white flex items-center justify-center gap-1.5">
+              <Sparkles className="h-5 w-5 text-teal-400" />
+              Secure Auth Link
+            </h1>
+            <p className="text-xs text-muted-foreground max-w-[280px] leading-relaxed font-semibold">
+              Your credentials have been securely verified. Tap below to navigate back into the native app.
+            </p>
+          </div>
+        </div>
+
+        {/* Pulse action button */}
+        <div className="w-full max-w-[280px] flex flex-col items-center space-y-4 mb-10">
+          <button
+            onClick={() => triggerDeepLink(hashFragment)}
+            className="w-full h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-[#070e11] font-black text-xs shadow-lg shadow-teal-400/25 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5"
+          >
+            Open MediBudget App
+            <ArrowRight className="h-4 w-4" />
+          </button>
+          <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider">
+            Resolves Google Chrome Security Guards
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 };
