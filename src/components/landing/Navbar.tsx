@@ -11,6 +11,7 @@ const Navbar = () => {
   const links = [
     { label: "Features", href: "#features" },
     { label: "How it Works", href: "#how-it-works" },
+    { label: "Android App", href: "#download-app" },
     { label: "FAQ", href: "/faq", isRoute: true },
   ];
 

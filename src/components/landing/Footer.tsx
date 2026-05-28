@@ -24,6 +24,7 @@ const Footer = () => {
               <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
               <li><Link to="/scanner" className="hover:text-foreground transition-colors">Medicine Scanner</Link></li>
               <li><Link to="/estimate" className="hover:text-foreground transition-colors">Cost Estimator</Link></li>
+              <li><a href="/medibudget.apk" download className="text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors font-medium">Download Android App</a></li>
             </ul>
           </div>
 

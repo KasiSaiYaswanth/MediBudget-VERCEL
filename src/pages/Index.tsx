@@ -12,6 +12,7 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import WhyMediBudgetSection from "@/components/landing/WhyMediBudgetSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
+import DownloadAndroidSection from "@/components/landing/DownloadAndroidSection";
 import Footer from "@/components/landing/Footer";
 
 const Index = () => {
@@ -100,6 +101,7 @@ const Index = () => {
         <FeaturesSection />
         <WhyMediBudgetSection />
         <HowItWorksSection />
+        <DownloadAndroidSection />
         <CTASection />
       </main>
       <Footer />
