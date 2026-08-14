@@ -42,6 +42,20 @@ export const supabase = createClient<Database>(url, key, {
     storage: Capacitor.isNativePlatform() ? capacitorStorage : localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: !Capacitor.isNativePlatform() // Let App.tsx handle redirect url session setup on mobile
-  }
+    detectSessionInUrl: !Capacitor.isNativePlatform(),
+  },
+  realtime: {
+    // Increase heartbeat so Android doesn't silently drop the WebSocket
+    // in the background (default 30s is too aggressive for mobile networks)
+    params: {
+      eventsPerSecond: 10,
+      heartbeatIntervalMs: 25000,
+    },
+    timeout: 30000,
+  },
+  global: {
+    headers: {
+      "x-client-info": Capacitor.isNativePlatform() ? "medibudget-android" : "medibudget-web",
+    },
+  },
 });

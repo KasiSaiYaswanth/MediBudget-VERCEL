@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Generate a per-session unique suffix so two devices sharing the same userId
+// don't collide on the same Supabase channel name.
+const SESSION_ID = Math.random().toString(36).slice(2, 8);
+
 export type SyncStatus = "synced" | "syncing" | "offline" | "reconnecting" | "connection_restored";
 
 interface RealtimeSyncContextType {
@@ -159,83 +163,60 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [fetchData]);
 
-  // Real-time Subscriptions setup
+  // Real-time Subscriptions setup — channel names are unique per user+session
+  // so Android and Web both receive their own copy of all database changes.
   const subscribeRealtime = useCallback((uid: string) => {
     if (estChannelRef.current) supabase.removeChannel(estChannelRef.current);
     if (symChannelRef.current) supabase.removeChannel(symChannelRef.current);
 
-    console.log("[SYNC] Creating real-time subscriptions...");
+    const estChannel = `cost-est-${uid}-${SESSION_ID}`;
+    const symChannel = `symptom-${uid}-${SESSION_ID}`;
 
-    // 1. Cost estimations subscription
+    console.log(`[SYNC] Subscribing on channels: ${estChannel}, ${symChannel}`);
+
+    // 1. Cost estimations
     estChannelRef.current = supabase
-      .channel("cost-estimation-changes")
+      .channel(estChannel)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "cost_estimation_logs",
-          filter: `user_id=eq.${uid}`,
-        },
+        { event: "*", schema: "public", table: "cost_estimation_logs", filter: `user_id=eq.${uid}` },
         (payload) => {
-          console.log("[SYNC] Real-time estimation change received:", payload);
+          console.log("[SYNC] Estimation change:", payload.eventType);
           if (payload.eventType === "INSERT") {
-            const newRecord = payload.new;
-            setEstimations((prev) => {
-              // Prevent duplicates
-              if (prev.some((x) => x.id === newRecord.id)) return prev;
-              return [newRecord, ...prev];
-            });
-            toast.success("New estimation synchronized!");
+            const rec = payload.new;
+            setEstimations((prev) => prev.some((x) => x.id === rec.id) ? prev : [rec, ...prev]);
           } else if (payload.eventType === "UPDATE") {
-            const updatedRecord = payload.new;
-            setEstimations((prev) =>
-              prev.map((x) => (x.id === updatedRecord.id ? updatedRecord : x))
-            );
+            setEstimations((prev) => prev.map((x) => (x.id === payload.new.id ? payload.new : x)));
           } else if (payload.eventType === "DELETE") {
-            const deletedRecord = payload.old;
-            setEstimations((prev) => prev.filter((x) => x.id !== deletedRecord.id));
+            setEstimations((prev) => prev.filter((x) => x.id !== payload.old.id));
           }
         }
       )
       .subscribe((status) => {
-        console.log(`[SYNC] Estimation subscription status: ${status}`);
+        console.log(`[SYNC] Estimation channel status: ${status}`);
+        if (status === "SUBSCRIBED") setSyncStatus("synced");
       });
 
-    // 2. Symptom searches subscription
+    // 2. Symptom searches
     symChannelRef.current = supabase
-      .channel("symptom-search-changes")
+      .channel(symChannel)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "symptom_searches",
-          filter: `user_id=eq.${uid}`,
-        },
+        { event: "*", schema: "public", table: "symptom_searches", filter: `user_id=eq.${uid}` },
         (payload) => {
-          console.log("[SYNC] Real-time symptom change received:", payload);
+          console.log("[SYNC] Symptom change:", payload.eventType);
           if (payload.eventType === "INSERT") {
-            const newRecord = payload.new;
-            setSymptoms((prev) => {
-              // Prevent duplicates
-              if (prev.some((x) => x.id === newRecord.id)) return prev;
-              return [newRecord, ...prev];
-            });
-            toast.success("New symptom scan synchronized!");
+            const rec = payload.new;
+            setSymptoms((prev) => prev.some((x) => x.id === rec.id) ? prev : [rec, ...prev]);
           } else if (payload.eventType === "UPDATE") {
-            const updatedRecord = payload.new;
-            setSymptoms((prev) =>
-              prev.map((x) => (x.id === updatedRecord.id ? updatedRecord : x))
-            );
+            setSymptoms((prev) => prev.map((x) => (x.id === payload.new.id ? payload.new : x)));
           } else if (payload.eventType === "DELETE") {
-            const deletedRecord = payload.old;
-            setSymptoms((prev) => prev.filter((x) => x.id !== deletedRecord.id));
+            setSymptoms((prev) => prev.filter((x) => x.id !== payload.old.id));
           }
         }
       )
       .subscribe((status) => {
-        console.log(`[SYNC] Symptom subscription status: ${status}`);
+        console.log(`[SYNC] Symptom channel status: ${status}`);
       });
   }, []);
 
@@ -298,35 +279,52 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [fetchData, subscribeRealtime, unsubscribeRealtime, loadGuestData, syncOfflineGuestData]);
 
   // Network Status / Reconnection Logic
+  // When the device comes back online (e.g., backgrounded Android app resumes),
+  // immediately re-fetch all data and re-create subscriptions so both platforms
+  // are guaranteed to be in sync even after a connection gap.
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+
   useEffect(() => {
     const handleOnline = () => {
+      const uid = userIdRef.current;
       setSyncStatus("connection_restored");
-      toast.success("Connection restored. Re-syncing cloud database...");
-      if (userId) {
-        fetchData(userId);
-        subscribeRealtime(userId);
+      console.log("[SYNC] Back online — re-fetching and re-subscribing.");
+      if (uid) {
+        fetchData(uid);
+        subscribeRealtime(uid);
       }
-      setTimeout(() => setSyncStatus("synced"), 5000);
+      setTimeout(() => setSyncStatus("synced"), 3000);
     };
 
     const handleOffline = () => {
       setSyncStatus("offline");
-      toast.warning("Network connection lost. Running in local/offline mode.");
+      toast.warning("Network lost. Working offline — data will sync when reconnected.");
     };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Initial check
-    if (!navigator.onLine) {
-      setSyncStatus("offline");
-    }
+    if (!navigator.onLine) setSyncStatus("offline");
+
+    // Also handle Capacitor app resume events (Android background→foreground)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        const uid = userIdRef.current;
+        if (uid) {
+          console.log("[SYNC] App resumed — re-fetching latest data.");
+          fetchData(uid);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [userId, fetchData, subscribeRealtime]);
+  }, [fetchData, subscribeRealtime]);
 
   // Refresh manual data
   const refreshData = useCallback(async () => {
