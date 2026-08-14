@@ -22,22 +22,17 @@ interface SavedEstimation {
 }
 
 const Dashboard = () => {
-  const { estimations } = useRealtimeSync();
+  const { estimations, schemes } = useRealtimeSync();
   const [userName, setUserName] = useState("there");
-  const [schemesChecked, setSchemesChecked] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const name = data.user?.user_metadata?.full_name;
       if (name) setUserName(name.split(" ")[0]);
     });
-    
-    // Load local metrics
-    try {
-      setSchemesChecked(parseInt(localStorage.getItem('schemesChecked') || '0'));
-    } catch (e) {}
   }, []);
 
+  const schemesChecked = schemes.length;
   const recentEstimations = estimations.map(reconstructEstimation).slice(0, 5);
 
   const totalEstimations = estimations.length;

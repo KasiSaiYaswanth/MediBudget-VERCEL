@@ -7,6 +7,7 @@ import { ChevronLeft, ShieldCheck, CheckCircle2, XCircle, Info } from "lucide-re
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 export interface SchemeResult {
   name: string;
@@ -157,6 +158,7 @@ export const stateSchemes: Record<string, { name: string; maxIncome: number; cov
 };
 
 const SchemeChecker = () => {
+  const { addSchemeCheck } = useRealtimeSync();
   const [income, setIncome] = useState("");
   const [hasRationCard, setHasRationCard] = useState("");
   const [rationCardType, setRationCardType] = useState("");
@@ -279,11 +281,13 @@ const SchemeChecker = () => {
 
     setResults(eligibilityResults);
     
-    // Save metric to localStorage
-    try {
-      const currentCount = parseInt(localStorage.getItem('schemesChecked') || '0');
-      localStorage.setItem('schemesChecked', (currentCount + 1).toString());
-    } catch (e) {}
+    addSchemeCheck({
+      state,
+      annual_income: annualIncome,
+      employment_type: employment,
+      eligible_schemes_count: eligibilityResults.filter(r => r.eligible).length,
+      total_schemes_evaluated: eligibilityResults.length
+    }).catch(console.warn);
   };
 
   return (

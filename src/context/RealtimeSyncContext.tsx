@@ -11,6 +11,7 @@ export type SyncStatus = "synced" | "syncing" | "offline" | "reconnecting" | "co
 interface RealtimeSyncContextType {
   estimations: any[];
   symptoms: any[];
+  schemes: any[];
   syncStatus: SyncStatus;
   isAuthenticated: boolean;
   addEstimation: (est: {
@@ -31,6 +32,13 @@ interface RealtimeSyncContextType {
   }) => Promise<any>;
   updateSymptom: (id: string, symptom: string) => Promise<void>;
   deleteSymptom: (id: string) => Promise<void>;
+  addSchemeCheck: (sch: {
+    state: string;
+    annual_income: number;
+    employment_type: string;
+    eligible_schemes_count: number;
+    total_schemes_evaluated: number;
+  }) => Promise<any>;
   refreshData: () => Promise<void>;
 }
 
@@ -39,18 +47,21 @@ const RealtimeSyncContext = createContext<RealtimeSyncContextType | undefined>(u
 export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [estimations, setEstimations] = useState<any[]>([]);
   const [symptoms, setSymptoms] = useState<any[]>([]);
+  const [schemes, setSchemes] = useState<any[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   const estChannelRef = useRef<any>(null);
   const symChannelRef = useRef<any>(null);
+  const schChannelRef = useRef<any>(null);
 
   // Load guest data from localStorage when offline/guest
   const loadGuestData = useCallback(() => {
     try {
       const localEst = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
       const localSym = JSON.parse(localStorage.getItem("symptomHistory") || "[]");
+      const localSch = JSON.parse(localStorage.getItem("schemeChecksHistory") || "[]");
 
       // Adapt localStorage structure to DB model structure
       const adaptedEst = localEst.map((item: any) => ({
@@ -73,8 +84,19 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
         city: item.city || "Unknown"
       }));
 
+      const adaptedSch = localSch.map((item: any) => ({
+        id: item.id || Date.now().toString() + Math.random().toString(),
+        created_at: item.date || new Date().toISOString(),
+        state: item.state || "Unknown",
+        annual_income: item.annual_income || 0,
+        employment_type: item.employment_type || "Unknown",
+        eligible_schemes_count: item.eligible_schemes_count || 0,
+        total_schemes_evaluated: item.total_schemes_evaluated || 0
+      }));
+
       setEstimations(adaptedEst);
       setSymptoms(adaptedSym);
+      setSchemes(adaptedSch);
     } catch (e) {
       console.error("Failed to load local storage guest data", e);
     }
@@ -102,11 +124,21 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (symptomError) throw symptomError;
 
+      // Fetch scheme checks
+      const { data: schemeData, error: schemeError } = await supabase
+        .from("scheme_checks")
+        .select("*")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false });
+
+      if (schemeError) throw schemeError;
+
       setEstimations(costData || []);
       setSymptoms(symptomData || []);
+      setSchemes(schemeData || []);
       setSyncStatus("synced");
 
-      console.log(`[SYNC] Loaded ${costData?.length} estimations and ${symptomData?.length} symptom searches.`);
+      console.log(`[SYNC] Loaded ${costData?.length} estimations, ${symptomData?.length} symptoms, and ${schemeData?.length} schemes.`);
     } catch (error: any) {
       console.error("[SYNC] Fetch error:", error.message);
       setSyncStatus("offline");
@@ -126,8 +158,9 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const localEst = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
       const localSym = JSON.parse(localStorage.getItem("symptomHistory") || "[]");
+      const localSch = JSON.parse(localStorage.getItem("schemeChecksHistory") || "[]");
 
-      if (localEst.length === 0 && localSym.length === 0) return;
+      if (localEst.length === 0 && localSym.length === 0 && localSch.length === 0) return;
 
       setSyncStatus("syncing");
       toast.info("Syncing local guest data to your account...");
@@ -162,6 +195,21 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
         else localStorage.removeItem("symptomHistory");
       }
 
+      if (localSch.length > 0) {
+        const schRecords = localSch.map((item: any) => ({
+          user_id: uid,
+          state: item.state || "Unknown",
+          annual_income: item.annual_income || 0,
+          employment_type: item.employment_type || "Unknown",
+          eligible_schemes_count: item.eligible_schemes_count || 0,
+          total_schemes_evaluated: item.total_schemes_evaluated || 0
+        }));
+
+        const { error } = await supabase.from("scheme_checks").insert(schRecords);
+        if (error) console.error("Error uploading guest scheme checks:", error);
+        else localStorage.removeItem("schemeChecksHistory");
+      }
+
       await fetchData(uid);
       toast.success("Guest data successfully synchronized with cloud!");
     } catch (err) {
@@ -174,11 +222,13 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const subscribeRealtime = useCallback((uid: string) => {
     if (estChannelRef.current) supabase.removeChannel(estChannelRef.current);
     if (symChannelRef.current) supabase.removeChannel(symChannelRef.current);
+    if (schChannelRef.current) supabase.removeChannel(schChannelRef.current);
 
     const estChannel = `cost-est-${uid}-${SESSION_ID}`;
     const symChannel = `symptom-${uid}-${SESSION_ID}`;
+    const schChannel = `scheme-${uid}-${SESSION_ID}`;
 
-    console.log(`[SYNC] Subscribing on channels: ${estChannel}, ${symChannel}`);
+    console.log(`[SYNC] Subscribing on channels: ${estChannel}, ${symChannel}, ${schChannel}`);
 
     // 1. Cost estimations
     estChannelRef.current = supabase
@@ -224,6 +274,28 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       .subscribe((status) => {
         console.log(`[SYNC] Symptom channel status: ${status}`);
       });
+
+    // 3. Scheme checks
+    schChannelRef.current = supabase
+      .channel(schChannel)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "scheme_checks", filter: `user_id=eq.${uid}` },
+        (payload) => {
+          console.log("[SYNC] Scheme check change:", payload.eventType);
+          if (payload.eventType === "INSERT") {
+            const rec = payload.new;
+            setSchemes((prev) => prev.some((x) => x.id === rec.id) ? prev : [rec, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setSchemes((prev) => prev.map((x) => (x.id === payload.new.id ? payload.new : x)));
+          } else if (payload.eventType === "DELETE") {
+            setSchemes((prev) => prev.filter((x) => x.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[SYNC] Scheme channel status: ${status}`);
+      });
   }, []);
 
   // Cleanup subscriptions on logout
@@ -235,6 +307,10 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (symChannelRef.current) {
       supabase.removeChannel(symChannelRef.current);
       symChannelRef.current = null;
+    }
+    if (schChannelRef.current) {
+      supabase.removeChannel(schChannelRef.current);
+      schChannelRef.current = null;
     }
     console.log("[SYNC] Real-time subscriptions cleaned up.");
   }, []);
@@ -638,11 +714,92 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [userId]);
 
+  // MUTATIONS: ADD SCHEME CHECK
+  const addSchemeCheck = useCallback(async (sch: {
+    state: string;
+    annual_income: number;
+    employment_type: string;
+    eligible_schemes_count: number;
+    total_schemes_evaluated: number;
+  }) => {
+    const tempId = generateUUID();
+    const newRecord = {
+      id: tempId,
+      user_id: userId,
+      state: sch.state,
+      annual_income: sch.annual_income,
+      employment_type: sch.employment_type,
+      eligible_schemes_count: sch.eligible_schemes_count,
+      total_schemes_evaluated: sch.total_schemes_evaluated,
+      created_at: new Date().toISOString(),
+    };
+
+    setSchemes((prev) => [newRecord, ...prev]);
+
+    // Save to local storage cache
+    try {
+      const savedSch = {
+        id: tempId,
+        date: newRecord.created_at,
+        state: sch.state,
+        annual_income: sch.annual_income,
+        employment_type: sch.employment_type,
+        eligible_schemes_count: sch.eligible_schemes_count,
+        total_schemes_evaluated: sch.total_schemes_evaluated
+      };
+      const existing = JSON.parse(localStorage.getItem("schemeChecksHistory") || "[]");
+      if (!existing.some((x: any) => x.id === tempId)) {
+        existing.unshift(savedSch);
+        localStorage.setItem("schemeChecksHistory", JSON.stringify(existing.slice(0, 50)));
+      }
+    } catch {}
+
+    if (!userId || !navigator.onLine) {
+      console.log("[SYNC] Saved offline/guest scheme check locally.");
+      return newRecord;
+    }
+
+    try {
+      setSyncStatus("syncing");
+      const { data, error } = await supabase
+        .from("scheme_checks")
+        .insert({
+          id: tempId,
+          user_id: userId,
+          state: sch.state,
+          annual_income: sch.annual_income,
+          employment_type: sch.employment_type,
+          eligible_schemes_count: sch.eligible_schemes_count,
+          total_schemes_evaluated: sch.total_schemes_evaluated
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSchemes((prev) => {
+        const exists = prev.filter(x => x.id === tempId || x.id === data.id);
+        if (exists.length > 1) {
+          return prev.filter(x => x.id !== tempId);
+        }
+        return prev.map((x) => (x.id === tempId ? data : x));
+      });
+      setSyncStatus("synced");
+      return data;
+    } catch (err: any) {
+      console.error("[SYNC] Add scheme check failed, rolled back optimistic record.", err);
+      setSchemes((prev) => prev.filter((x) => x.id !== tempId));
+      setSyncStatus("offline");
+      throw err;
+    }
+  }, [userId]);
+
   return (
     <RealtimeSyncContext.Provider
       value={{
         estimations,
         symptoms,
+        schemes,
         syncStatus,
         isAuthenticated,
         addEstimation,
@@ -651,6 +808,7 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
         addSymptom,
         updateSymptom,
         deleteSymptom,
+        addSchemeCheck,
         refreshData,
       }}
     >

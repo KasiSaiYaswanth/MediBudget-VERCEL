@@ -8,10 +8,11 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
 
-// Import core datasets directly from desktop page
 import { indianStates, stateSchemes, type SchemeResult } from "@/pages/SchemeChecker";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 export const MobileSchemeChecker = () => {
+  const { addSchemeCheck } = useRealtimeSync();
   const [income, setIncome] = useState("");
   const [hasRationCard, setHasRationCard] = useState("");
   const [rationCardType, setRationCardType] = useState("");
@@ -134,11 +135,13 @@ export const MobileSchemeChecker = () => {
 
     setResults(eligibilityResults);
     
-    // Save metric to localStorage
-    try {
-      const currentCount = parseInt(localStorage.getItem('schemesChecked') || '0');
-      localStorage.setItem('schemesChecked', (currentCount + 1).toString());
-    } catch (e) {}
+    addSchemeCheck({
+      state,
+      annual_income: annualIncome,
+      employment_type: employment,
+      eligible_schemes_count: eligibilityResults.filter(r => r.eligible).length,
+      total_schemes_evaluated: eligibilityResults.length
+    }).catch(console.warn);
   };
 
   return (

@@ -23,10 +23,9 @@ interface SavedEstimation {
 }
 
 export const MobileDashboard = () => {
-  const { estimations } = useRealtimeSync();
+  const { estimations, schemes } = useRealtimeSync();
   const [userName, setUserName] = useState("there");
   const [activeTip, setActiveTip] = useState(0);
-  const [schemesChecked, setSchemesChecked] = useState(0);
 
   const healthTips = [
     "⚕️ Did you know generic drugs can cost up to 80% less than branded medicines?",
@@ -41,16 +40,13 @@ export const MobileDashboard = () => {
       if (name) setUserName(name.split(" ")[0]);
     });
 
-    try {
-      setSchemesChecked(parseInt(localStorage.getItem('schemesChecked') || '0'));
-    } catch (e) {}
-
     const interval = setInterval(() => {
       setActiveTip((prev) => (prev + 1) % healthTips.length);
     }, 6000);
     return () => clearInterval(interval);
   }, []);
 
+  const schemesChecked = schemes.length;
   const recentEstimations = estimations.map(reconstructEstimation).slice(0, 3);
 
   const totalEstimations = estimations.length;
