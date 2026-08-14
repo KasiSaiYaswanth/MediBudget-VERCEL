@@ -10,6 +10,7 @@ import { checkIsAdmin } from "@/lib/adminService";
 
 import { Separator } from "@/components/ui/separator";
 import { Browser } from "@capacitor/browser";
+import { Capacitor } from "@capacitor/core";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -128,19 +129,30 @@ export const MobileLogin = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: "com.medibudget.app://login",
-          skipBrowserRedirect: true,
+      if (Capacitor.isNativePlatform()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: "com.medibudget.app://login",
+            skipBrowserRedirect: true,
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.url) {
+          // Open the URL using Capacitor Browser plugin
+          await Browser.open({ url: data.url, windowName: '_self' });
         }
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        // Open the URL using Capacitor Browser plugin
-        await Browser.open({ url: data.url, windowName: '_self' });
+      } else {
+        // Standard mobile web browser flow
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin,
+          }
+        });
+        if (error) throw error;
       }
     } catch (error: any) {
       toast.error("Google sign-in failed: " + error.message);
