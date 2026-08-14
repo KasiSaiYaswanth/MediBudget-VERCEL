@@ -133,6 +133,12 @@ export const MobileSchemeChecker = () => {
     });
 
     setResults(eligibilityResults);
+    
+    // Save metric to localStorage
+    try {
+      const currentCount = parseInt(localStorage.getItem('schemesChecked') || '0');
+      localStorage.setItem('schemesChecked', (currentCount + 1).toString());
+    } catch (e) {}
   };
 
   return (

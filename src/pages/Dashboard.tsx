@@ -24,12 +24,18 @@ interface SavedEstimation {
 const Dashboard = () => {
   const { estimations } = useRealtimeSync();
   const [userName, setUserName] = useState("there");
+  const [schemesChecked, setSchemesChecked] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const name = data.user?.user_metadata?.full_name;
       if (name) setUserName(name.split(" ")[0]);
     });
+    
+    // Load local metrics
+    try {
+      setSchemesChecked(parseInt(localStorage.getItem('schemesChecked') || '0'));
+    } catch (e) {}
   }, []);
 
   const recentEstimations = estimations.map(reconstructEstimation).slice(0, 5);
@@ -86,7 +92,7 @@ const Dashboard = () => {
   const stats = [
     { label: "Estimations Made", value: totalEstimations.toString(), icon: Calculator },
     { label: "Avg. Estimate", value: totalEstimations > 0 ? `₹${Math.round(totalSpent / totalEstimations).toLocaleString("en-IN")}` : "₹0", icon: TrendingDown },
-    { label: "Schemes Checked", value: "0", icon: Users },
+    { label: "Schemes Checked", value: schemesChecked.toString(), icon: Users },
   ];
 
   const formatCurrency = (val: number) => `₹${val.toLocaleString("en-IN")}`;

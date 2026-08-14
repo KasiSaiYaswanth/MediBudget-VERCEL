@@ -111,6 +111,11 @@ const MobileAppRoutes = () => {
   const processingRef = useRef(false); // prevent double-processing
 
   useEffect(() => {
+    // Hide native splash immediately so the app feels fast
+    import("@capacitor/splash-screen").then(({ SplashScreen }) => {
+      SplashScreen.hide().catch(() => {});
+    });
+
     // ── Handle Google OAuth deep-link callbacks (com.medibudget.app://login?...) ──
     const handleAppUrl = async (event: any) => {
       const url: string = event.url || "";

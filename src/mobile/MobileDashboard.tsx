@@ -26,6 +26,7 @@ export const MobileDashboard = () => {
   const { estimations } = useRealtimeSync();
   const [userName, setUserName] = useState("there");
   const [activeTip, setActiveTip] = useState(0);
+  const [schemesChecked, setSchemesChecked] = useState(0);
 
   const healthTips = [
     "⚕️ Did you know generic drugs can cost up to 80% less than branded medicines?",
@@ -39,6 +40,10 @@ export const MobileDashboard = () => {
       const name = data.user?.user_metadata?.full_name;
       if (name) setUserName(name.split(" ")[0]);
     });
+
+    try {
+      setSchemesChecked(parseInt(localStorage.getItem('schemesChecked') || '0'));
+    } catch (e) {}
 
     const interval = setInterval(() => {
       setActiveTip((prev) => (prev + 1) % healthTips.length);
@@ -128,9 +133,9 @@ export const MobileDashboard = () => {
 
           <Card className="shadow-sm border border-border/40">
             <CardContent className="p-3 text-center flex flex-col items-center">
-              <Shield className="h-4.5 w-4.5 text-accent mb-1" />
-              <span className="text-base font-extrabold text-foreground">Active</span>
-              <span className="text-[9px] text-muted-foreground mt-0.5 truncate w-full">Insurance</span>
+              <ShieldCheck className="h-4.5 w-4.5 text-accent mb-1" />
+              <span className="text-base font-extrabold text-foreground">{schemesChecked}</span>
+              <span className="text-[9px] text-muted-foreground mt-0.5 truncate w-full">Schemes Checked</span>
             </CardContent>
           </Card>
         </div>
