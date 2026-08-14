@@ -110,7 +110,13 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error: any) {
       console.error("[SYNC] Fetch error:", error.message);
       setSyncStatus("offline");
-      toast.error("Failed to sync with cloud. Displaying local cache.");
+      
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
+         toast.error("Database tables are missing. Please run the SQL setup script in your Supabase SQL Editor.", { duration: 10000 });
+      } else {
+         toast.error("Failed to sync with cloud. Displaying local cache.");
+      }
+      
       loadGuestData();
     }
   }, [loadGuestData]);
