@@ -27,19 +27,47 @@ const Index = () => {
     }
 
     const checkMobileAuth = async () => {
-      // Simulate slightly longer loading for splash screen elegance
-      const start = Date.now();
-      const { data: { session } } = await supabase.auth.getSession();
-      const elapsed = Date.now() - start;
-      const delay = Math.max(0, 1500 - elapsed); // Keep splash visible for at least 1.5s for brand impact
+      // 1. FAST PATH: Check localStorage directly
+      let hasLocalSession = false;
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i) || "";
+          if (k.includes("auth-token") || k.includes("supabase.auth.token")) {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              const expiresAt = parsed?.expires_at || parsed?.expiresAt || 0;
+              if (expiresAt > Math.floor(Date.now() / 1000)) {
+                hasLocalSession = true;
+              }
+            }
+            break;
+          }
+        }
+      } catch {}
 
-      setTimeout(() => {
+      if (hasLocalSession) {
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      // 2. Fallback check with hard timeout
+      const hardTimeout = setTimeout(() => {
+        navigate("/login", { replace: true });
+      }, 3000);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        clearTimeout(hardTimeout);
         if (session) {
           navigate("/dashboard", { replace: true });
         } else {
           navigate("/login", { replace: true });
         }
-      }, delay);
+      } catch (e) {
+        clearTimeout(hardTimeout);
+        navigate("/login", { replace: true });
+      }
     };
 
     checkMobileAuth();
