@@ -341,6 +341,17 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [userId, fetchData, loadGuestData]);
 
+  // UUID generator for optimistic updates
+  const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   // MUTATIONS: ADD ESTIMATION
   const addEstimation = useCallback(async (est: {
     condition: string;
@@ -350,8 +361,8 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     insurance_applied?: boolean;
     insurance_coverage?: number;
   }) => {
-    // 1. Optimistic UI update
-    const tempId = "temp_" + Date.now().toString() + Math.random().toString();
+    // 1. Optimistic UI update using a real UUID
+    const tempId = generateUUID();
     const newRecord = {
       id: tempId,
       user_id: userId,
@@ -379,8 +390,11 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
         insurance_coverage: est.insurance_coverage
       };
       const existing = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-      existing.unshift(savedEst);
-      localStorage.setItem("estimationHistory", JSON.stringify(existing.slice(0, 50)));
+      // Prevent local storage duplication if already exists
+      if (!existing.some((x: any) => x.id === tempId)) {
+        existing.unshift(savedEst);
+        localStorage.setItem("estimationHistory", JSON.stringify(existing.slice(0, 50)));
+      }
     } catch {}
 
     if (!userId || !navigator.onLine) {
@@ -393,6 +407,7 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data, error } = await supabase
         .from("cost_estimation_logs")
         .insert({
+          id: tempId,
           user_id: userId,
           condition: est.condition,
           city: est.city,
@@ -407,9 +422,14 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) throw error;
 
       // Replace optimistic record with the real confirmed record
-      setEstimations((prev) =>
-        prev.map((x) => (x.id === tempId ? data : x))
-      );
+      setEstimations((prev) => {
+        // If real-time stream already added it, avoid duplicating
+        const exists = prev.filter(x => x.id === tempId || x.id === data.id);
+        if (exists.length > 1) {
+          return prev.filter(x => x.id !== tempId); // remove the temp one if duplicated
+        }
+        return prev.map((x) => (x.id === tempId ? data : x));
+      });
       setSyncStatus("synced");
       return data;
     } catch (err: any) {
@@ -490,7 +510,7 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
     confidence_score: number;
     city?: string;
   }) => {
-    const tempId = "temp_" + Date.now().toString() + Math.random().toString();
+    const tempId = generateUUID();
     const newRecord = {
       id: tempId,
       user_id: userId,
@@ -514,8 +534,10 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
         city: sym.city || "Unknown"
       };
       const existing = JSON.parse(localStorage.getItem("symptomHistory") || "[]");
-      existing.unshift(savedSym);
-      localStorage.setItem("symptomHistory", JSON.stringify(existing.slice(0, 50)));
+      if (!existing.some((x: any) => x.id === tempId)) {
+        existing.unshift(savedSym);
+        localStorage.setItem("symptomHistory", JSON.stringify(existing.slice(0, 50)));
+      }
     } catch {}
 
     if (!userId || !navigator.onLine) {
@@ -528,6 +550,7 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data, error } = await supabase
         .from("symptom_searches")
         .insert({
+          id: tempId,
           user_id: userId,
           symptom: sym.symptom,
           predicted_condition: sym.predicted_condition,
@@ -540,9 +563,13 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) throw error;
 
       // Replace optimistic record with the real confirmed record
-      setSymptoms((prev) =>
-        prev.map((x) => (x.id === tempId ? data : x))
-      );
+      setSymptoms((prev) => {
+        const exists = prev.filter(x => x.id === tempId || x.id === data.id);
+        if (exists.length > 1) {
+          return prev.filter(x => x.id !== tempId);
+        }
+        return prev.map((x) => (x.id === tempId ? data : x));
+      });
       setSyncStatus("synced");
       return data;
     } catch (err: any) {
