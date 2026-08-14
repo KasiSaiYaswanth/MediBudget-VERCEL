@@ -9,7 +9,6 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // import { supabase } from "@/integrations/supabase/client";
 
 import { Capacitor } from '@capacitor/core';
-import { Preferences } from '@capacitor/preferences';
 
 // Fallback to placeholder strings to prevent the app from completely crashing with a blank screen
 // if the environment variables are missing during a production build (e.g., on Vercel)
@@ -23,30 +22,19 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   );
 }
 
-// Custom storage provider for native mobile applications using Capacitor Preferences
-const capacitorStorage = {
-  getItem: async (key: string): Promise<string | null> => {
-    const { value } = await Preferences.get({ key });
-    return value;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    await Preferences.set({ key, value });
-  },
-  removeItem: async (key: string): Promise<void> => {
-    await Preferences.remove({ key });
-  }
-};
-
+// Use localStorage for BOTH web and native (Capacitor WebView supports it fully).
+// Previously we used Capacitor Preferences (async) which caused getSession() to hang
+// on cold start — localStorage resolves synchronously and eliminates that race condition.
 export const supabase = createClient<Database>(url, key, {
   auth: {
-    storage: Capacitor.isNativePlatform() ? capacitorStorage : localStorage,
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // On native, Supabase should NOT try to read the session from the URL hash
+    // because deep-link OAuth tokens are handled manually in MobileApp.tsx
     detectSessionInUrl: !Capacitor.isNativePlatform(),
   },
   realtime: {
-    // Increase heartbeat so Android doesn't silently drop the WebSocket
-    // in the background (default 30s is too aggressive for mobile networks)
     params: {
       eventsPerSecond: 10,
       heartbeatIntervalMs: 25000,
