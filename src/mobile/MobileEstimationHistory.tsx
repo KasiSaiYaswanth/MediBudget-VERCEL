@@ -108,6 +108,8 @@ export const MobileEstimationHistory = () => {
     }
   };
 
+  const loading = syncStatus === "syncing" && estimations.length === 0 && symptoms.length === 0;
+
   // DELETE operation
   const handleDelete = async (id: string, type: "cost" | "symptom", e: React.MouseEvent) => {
     e.stopPropagation(); // prevent opening details Sheet
@@ -191,7 +193,7 @@ export const MobileEstimationHistory = () => {
             </div>
           </div>
           <button
-            onClick={() => fetchLogs(true)}
+            onClick={handleRefresh}
             disabled={refreshing || loading}
             className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center active-scale text-foreground shrink-0 disabled:opacity-50"
           >
