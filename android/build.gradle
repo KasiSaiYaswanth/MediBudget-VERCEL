@@ -24,6 +24,20 @@ allprojects {
     }
 }
 
+subprojects {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin("java") || project.plugins.hasPlugin("java-library") || project.hasProperty("android")) {
+            project.java {
+                toolchain {
+                    languageVersion = JavaLanguageVersion.of(21)
+                }
+            }
+        }
+    }
+}
+
+
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
