@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, History as HistoryIcon, Trash2, IndianRupee, Building2, MapPin, Stethoscope } from "lucide-react";
@@ -6,6 +5,8 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
+import { reconstructEstimation } from "@/lib/reconstructEstimation";
 
 interface SavedEstimation {
   id: string;
@@ -23,24 +24,28 @@ interface SavedEstimation {
 }
 
 const EstimationHistory = () => {
-  const [estimations, setEstimations] = useState<SavedEstimation[]>([]);
+  const { estimations: rawEstimations, deleteEstimation } = useRealtimeSync();
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-    setEstimations(saved);
-  }, []);
+  const estimations = rawEstimations.map(reconstructEstimation);
 
-  const deleteEstimation = (id: string) => {
-    const updated = estimations.filter((e) => e.id !== id);
-    setEstimations(updated);
-    localStorage.setItem("estimationHistory", JSON.stringify(updated));
-    toast.success("Estimation removed from history");
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteEstimation(id);
+      toast.success("Estimation removed from history");
+    } catch {
+      toast.error("Failed to delete estimation");
+    }
   };
 
-  const clearAll = () => {
-    setEstimations([]);
-    localStorage.removeItem("estimationHistory");
-    toast.success("All estimations cleared");
+  const clearAll = async () => {
+    try {
+      for (const est of rawEstimations) {
+        await deleteEstimation(est.id);
+      }
+      toast.success("All estimations cleared");
+    } catch {
+      toast.error("Failed to clear some estimations");
+    }
   };
 
   const formatDate = (iso: string) => {
@@ -142,7 +147,7 @@ const EstimationHistory = () => {
                           variant="ghost"
                           size="icon"
                           className="text-muted-foreground hover:text-destructive flex-shrink-0"
-                          onClick={() => deleteEstimation(est.id)}
+                          onClick={() => handleDelete(est.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

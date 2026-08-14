@@ -12,11 +12,13 @@ import NearbyHospitals from "@/components/estimation/NearbyHospitals";
 import ConditionAnalyzer from "@/components/estimation/ConditionAnalyzer";
 import { matchCityToList } from "@/lib/locationService";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 // Import core datasets directly from desktop component to ensure sync
 import { conditions, sortedStates, cityGroups, hospitalTypes, type EstimationResult } from "@/pages/CostEstimation";
 
 export const MobileCostEstimation = () => {
+  const { addEstimation } = useRealtimeSync();
   const location = useLocation();
   const navState = location.state as { chatbotCondition?: string; description?: string } | null;
 
@@ -70,41 +72,15 @@ export const MobileCostEstimation = () => {
       recommendedMedicines: cond.recommendedMedicines,
     });
 
-    // Save to Supabase cost_estimation_logs in real-time
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase.from("cost_estimation_logs").insert({
-          user_id: user.id,
-          condition: cond.label,
-          city: `${c.label}, ${c.state}`,
-          hospital_type: h.label,
-          estimated_cost: total,
-          insurance_applied: false,
-          insurance_coverage: 0
-        }).then(({ error }) => {
-          if (error) console.error("Failed to sync cost estimation log to Supabase:", error);
-        });
-      }
-    }).catch(err => console.warn("Supabase auth check failed in cost estimator:", err));
-
-    // Save to localStorage for robust offline access
-    const savedEstimation = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
+    // Save via unified real-time sync provider
+    addEstimation({
       condition: cond.label,
       city: `${c.label}, ${c.state}`,
-      hospitalType: h.label,
-      consultation,
-      tests,
-      medicines,
-      treatment,
-      total,
-      cityMultiplier: cm,
-      hospitalMultiplier: hm,
-    };
-    const existing = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-    existing.unshift(savedEstimation);
-    localStorage.setItem("estimationHistory", JSON.stringify(existing.slice(0, 50)));
+      hospital_type: h.label,
+      estimated_cost: total,
+    }).catch((err) => {
+      console.warn("Failed to sync mobile estimation in real-time:", err);
+    });
 
     setStep(4);
   };

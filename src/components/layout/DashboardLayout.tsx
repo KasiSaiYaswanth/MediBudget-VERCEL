@@ -28,6 +28,7 @@ import {
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 interface Props {
   children: ReactNode;
@@ -52,6 +53,24 @@ const DashboardLayout = ({ children }: Props) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { isOnline, wasOffline } = useNetworkStatus();
   const { syncNow } = useOfflineSync();
+  const { syncStatus } = useRealtimeSync();
+
+  const renderSyncBadge = () => {
+    switch (syncStatus) {
+      case "synced":
+        return <span className="text-[9px] text-emerald-500 font-bold flex items-center gap-1">● Synced</span>;
+      case "syncing":
+        return <span className="text-[9px] text-teal-400 font-bold flex items-center gap-1 animate-pulse">↻ Syncing...</span>;
+      case "offline":
+        return <span className="text-[9px] text-amber-500 font-bold flex items-center gap-1">▲ Offline</span>;
+      case "reconnecting":
+        return <span className="text-[9px] text-amber-400 font-bold flex items-center gap-1 animate-pulse">○ Reconnecting...</span>;
+      case "connection_restored":
+        return <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-1 animate-bounce">● Restored</span>;
+      default:
+        return null;
+    }
+  };
 
   // Generate daily tips & checkup reminders on mount
   useEffect(() => {
@@ -76,7 +95,10 @@ const DashboardLayout = ({ children }: Props) => {
         <div className="h-9 w-9 rounded-lg gradient-primary flex items-center justify-center">
           <Pill className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold text-foreground">MediBudget</span>
+        <div className="flex flex-col">
+          <span className="text-lg font-bold text-foreground leading-none">MediBudget</span>
+          <div className="mt-1">{renderSyncBadge()}</div>
+        </div>
       </Link>
 
       <nav className="flex-1 px-3 space-y-1">
@@ -157,7 +179,10 @@ const DashboardLayout = ({ children }: Props) => {
             <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
               <Pill className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-foreground">MediBudget</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-sm text-foreground leading-none">MediBudget</span>
+              <div className="mt-0.5">{renderSyncBadge()}</div>
+            </div>
           </div>
           <button onClick={() => setNotifOpen(true)} className="relative">
             <Bell className="h-5 w-5 text-foreground" />

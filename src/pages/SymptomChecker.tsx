@@ -23,6 +23,7 @@ import ReactMarkdown from "react-markdown";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import EmergencyAlert, { detectEmergencySymptom } from "@/components/emergency/EmergencyAlert";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -39,6 +40,7 @@ const quickPrompts = [
 ];
 
 const SymptomChecker = () => {
+  const { addSymptom } = useRealtimeSync();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -139,15 +141,18 @@ const SymptomChecker = () => {
 
     try {
       await streamChat(updated);
-      // Save symptom history for Health Dashboard
+      // Persist the first user message of each conversation as a symptom search record
       if (messages.length === 0) {
+        addSymptom({
+          symptom: text.trim(),
+          predicted_condition: "Pending AI analysis",
+          confidence_score: 0.85,
+        }).catch((err) => console.warn("[SYNC] Symptom save failed:", err));
+
+        // Also persist to legacy key for HealthDashboard compatibility
         try {
           const history = JSON.parse(localStorage.getItem("medibudget_symptom_history") || "[]");
-          history.unshift({
-            id: crypto.randomUUID(),
-            date: new Date().toISOString(),
-            symptoms: text.trim(),
-          });
+          history.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), symptoms: text.trim() });
           localStorage.setItem("medibudget_symptom_history", JSON.stringify(history.slice(0, 20)));
         } catch {}
       }

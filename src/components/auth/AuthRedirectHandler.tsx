@@ -7,6 +7,10 @@ import { Pill, Sparkles, ArrowRight } from "lucide-react";
 
 const PUBLIC_ROUTES = ["/", "/login", "/signup", "/privacy", "/terms", "/disclaimer", "/contact", "/faq", "/install"];
 
+// Fallback URL used when the native Android app is not installed:
+// Points back to the hosted web app's login page (not a Drive link)
+const WEB_APP_LOGIN_URL = encodeURIComponent(`${window.location.origin}/login`);
+
 export const AuthRedirectHandler = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,17 +18,18 @@ export const AuthRedirectHandler = () => {
   const [showMobileBridge, setShowMobileBridge] = useState(false);
   const [hashFragment, setHashFragment] = useState("");
 
+  const buildAndroidIntentUrl = (queryParams: string) =>
+    `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${WEB_APP_LOGIN_URL};end`;
+
   const triggerDeepLink = (hash: string) => {
     if (!hash) return;
     console.log("Triggering deep link via user gesture:", hash);
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) {
       const queryParams = hash.replace(/^#/, "?");
-      const fallbackUrl = encodeURIComponent("https://drive.google.com/uc?export=download&id=1EDs5bpe3QiTo05--8nyDRr2UiU0BURpT");
-      window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
+      window.location.href = buildAndroidIntentUrl(queryParams);
     } else {
       window.location.href = `com.medibudget.app://login${hash}`;
-      
       setTimeout(() => {
         window.location.href = `medibudget://auth/callback${hash}`;
       }, 150);
@@ -38,7 +43,7 @@ export const AuthRedirectHandler = () => {
 
     if (hash && (hash.includes("access_token=") || hash.includes("refresh_token="))) {
       if (isMobileUserAgent) {
-        console.log("Mobile auth callback hash detected on Vercel. Mounting Redirect Bridge...");
+        console.log("Mobile auth callback hash detected. Mounting Redirect Bridge...");
         setHashFragment(hash);
         setShowMobileBridge(true);
         
@@ -46,8 +51,7 @@ export const AuthRedirectHandler = () => {
         const isAndroid = /Android/i.test(navigator.userAgent);
         if (isAndroid) {
           const queryParams = hash.replace(/^#/, "?");
-          const fallbackUrl = encodeURIComponent("https://drive.google.com/uc?export=download&id=1EDs5bpe3QiTo05--8nyDRr2UiU0BURpT");
-          window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
+          window.location.href = buildAndroidIntentUrl(queryParams);
         } else {
           window.location.href = `com.medibudget.app://login${hash}`;
           setTimeout(() => {
@@ -57,6 +61,7 @@ export const AuthRedirectHandler = () => {
         return;
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   // 2. Intercept SIGNED_IN auth state changes
@@ -71,7 +76,7 @@ export const AuthRedirectHandler = () => {
             const refreshToken = session.refresh_token;
             if (accessToken && refreshToken) {
               const hashFragmentStr = `#access_token=${accessToken}&refresh_token=${refreshToken}`;
-              console.log("Mobile session established on Vercel. Deep linking to native app...");
+              console.log("Mobile session established. Deep linking to native app...");
               setHashFragment(hashFragmentStr);
               setShowMobileBridge(true);
               
@@ -79,8 +84,7 @@ export const AuthRedirectHandler = () => {
               const isAndroid = /Android/i.test(navigator.userAgent);
               if (isAndroid) {
                 const queryParams = hashFragmentStr.replace(/^#/, "?");
-                const fallbackUrl = encodeURIComponent("https://drive.google.com/uc?export=download&id=1EDs5bpe3QiTo05--8nyDRr2UiU0BURpT");
-                window.location.href = `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
+                window.location.href = buildAndroidIntentUrl(queryParams);
               } else {
                 window.location.href = `com.medibudget.app://login${hashFragmentStr}`;
                 setTimeout(() => {
@@ -111,6 +115,7 @@ export const AuthRedirectHandler = () => {
     );
 
     return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, location.pathname]);
 
   const getDeepLinkUrl = () => {
@@ -118,8 +123,7 @@ export const AuthRedirectHandler = () => {
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) {
       const queryParams = hashFragment.replace(/^#/, "?");
-      const fallbackUrl = encodeURIComponent("https://drive.google.com/uc?export=download&id=1EDs5bpe3QiTo05--8nyDRr2UiU0BURpT");
-      return `intent://login${queryParams}#Intent;scheme=com.medibudget.app;package=com.medibudget.app;S.browser_fallback_url=${fallbackUrl};end`;
+      return buildAndroidIntentUrl(queryParams);
     }
     return `com.medibudget.app://login${hashFragment}`;
   };
@@ -136,13 +140,13 @@ export const AuthRedirectHandler = () => {
     }
   };
 
-  // Render high-fidelity OAuth bridge overlay for mobile clients
+  // Render OAuth bridge overlay for mobile clients
   if (showMobileBridge) {
     return (
       <div className="fixed inset-0 z-[99999] bg-[#070e11] flex flex-col justify-between items-center p-6 text-white select-none">
         <div />
 
-        {/* Pulsing branding logo */}
+        {/* Branding logo */}
         <div className="flex flex-col items-center space-y-5 text-center">
           <div className="h-16 w-16 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-2xl shadow-emerald-500/20 relative animate-pulse">
             <Pill className="h-8 w-8 text-white rotate-45" />
@@ -151,15 +155,15 @@ export const AuthRedirectHandler = () => {
           <div className="space-y-2.5">
             <h1 className="text-xl font-black text-white flex items-center justify-center gap-1.5">
               <Sparkles className="h-5 w-5 text-teal-400" />
-              Secure Auth Link
+              Login Successful
             </h1>
             <p className="text-xs text-muted-foreground max-w-[280px] leading-relaxed font-semibold">
-              Your credentials have been securely verified. Tap below to navigate back into the native app.
+              Your account has been verified. Tap the button below to open the MediBudget app.
             </p>
           </div>
         </div>
 
-        {/* Pulse action button */}
+        {/* Action button */}
         <div className="w-full max-w-[280px] flex flex-col items-center space-y-4 mb-10">
           <a
             href={getDeepLinkUrl()}
@@ -170,7 +174,7 @@ export const AuthRedirectHandler = () => {
             <ArrowRight className="h-4 w-4" />
           </a>
           <span className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider">
-            Resolves Google Chrome Security Guards
+            Tap to continue in the native app
           </span>
         </div>
       </div>

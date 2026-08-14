@@ -9,6 +9,8 @@ import {
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
+import { reconstructEstimation } from "@/lib/reconstructEstimation";
 
 interface SavedEstimation {
   id: string;
@@ -20,29 +22,21 @@ interface SavedEstimation {
 }
 
 const Dashboard = () => {
+  const { estimations } = useRealtimeSync();
   const [userName, setUserName] = useState("there");
-  const [recentEstimations, setRecentEstimations] = useState<SavedEstimation[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const name = data.user?.user_metadata?.full_name;
       if (name) setUserName(name.split(" ")[0]);
     });
-
-    // Load estimation history from localStorage
-    try {
-      const history = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-      setRecentEstimations(history.slice(0, 5));
-    } catch {
-      setRecentEstimations([]);
-    }
   }, []);
 
-  const totalEstimations = recentEstimations.length > 0
-    ? JSON.parse(localStorage.getItem("estimationHistory") || "[]").length
-    : 0;
+  const recentEstimations = estimations.map(reconstructEstimation).slice(0, 5);
 
-  const totalSpent = recentEstimations.reduce((sum, e) => sum + (e.total || 0), 0);
+  const totalEstimations = estimations.length;
+
+  const totalSpent = estimations.reduce((sum, e) => sum + (Number(e.estimated_cost) || 0), 0);
 
   const quickActions = [
     {

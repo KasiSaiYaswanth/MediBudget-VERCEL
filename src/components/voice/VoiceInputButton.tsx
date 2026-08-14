@@ -3,6 +3,8 @@ import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 
 interface VoiceInputButtonProps {
   onTranscript: (text: string) => void;
@@ -37,8 +39,10 @@ const VoiceInputButton = ({ onTranscript, disabled, className }: VoiceInputButto
     return new SpeechRecognition();
   }, []);
 
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
+  const stopListening = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      await SpeechRecognition.stop();
+    } else if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
@@ -49,7 +53,46 @@ const VoiceInputButton = ({ onTranscript, disabled, className }: VoiceInputButto
     setInterimText("");
   }, []);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { speechRecognition } = await SpeechRecognition.checkPermissions();
+        if (speechRecognition !== 'granted') {
+          const { speechRecognition: req } = await SpeechRecognition.requestPermissions();
+          if (req !== 'granted') {
+            toast.error('Microphone permission required.');
+            return;
+          }
+        }
+        setIsListening(true);
+        toast.info("🎤 Listening...", { duration: 2000 });
+        
+        SpeechRecognition.addListener('partialResults', (data: any) => {
+          if (data.matches && data.matches.length > 0) {
+            setInterimText(data.matches[0]);
+          }
+        });
+
+        await SpeechRecognition.start({
+          language: "en-IN",
+          maxResults: 1,
+          prompt: "Speak your symptoms...",
+          partialResults: true,
+          popup: false,
+        });
+
+        timeoutRef.current = setTimeout(() => {
+          stopListening();
+          // We can't automatically grab the final text reliably from partialResults here
+          // But interimText will contain the latest match
+        }, 8000);
+      } catch (e) {
+        toast.error("Could not start microphone.");
+        setIsListening(false);
+      }
+      return;
+    }
+
     const recognition = getSpeechRecognition();
     if (!recognition) return;
 
@@ -87,12 +130,12 @@ const VoiceInputButton = ({ onTranscript, disabled, className }: VoiceInputButto
 
     recognition.onend = () => {
       setIsListening(false);
-      setInterimText("");
       recognitionRef.current = null;
       if (finalTranscript.trim()) {
         onTranscript(finalTranscript.trim());
         toast.success("Voice input captured!", { duration: 1500 });
       }
+      setInterimText("");
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -139,7 +182,12 @@ const VoiceInputButton = ({ onTranscript, disabled, className }: VoiceInputButto
         type="button"
         variant={isListening ? "destructive" : "outline"}
         size="icon"
-        onClick={toggleListening}
+        onClick={() => {
+          if (isListening && Capacitor.isNativePlatform()) {
+            if (interimText.trim()) onTranscript(interimText.trim());
+          }
+          toggleListening();
+        }}
         disabled={disabled}
         className={`relative overflow-hidden transition-all ${className || ""}`}
         title={isListening ? "Stop recording" : "Speak your symptoms"}

@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { RealtimeSyncProvider } from "@/context/RealtimeSyncContext";
 
 // Responsive Switch Interceptor
 import ResponsiveWrapper from "./responsive/ResponsiveWrapper";
@@ -83,9 +84,11 @@ const App = () => {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <MobileApp />
+          <RealtimeSyncProvider>
+            <Toaster />
+            <Sonner />
+            <MobileApp />
+          </RealtimeSyncProvider>
         </TooltipProvider>
       </QueryClientProvider>
     );
@@ -94,10 +97,11 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthRedirectHandler />
+        <RealtimeSyncProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthRedirectHandler />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               {/* Public Routes */}
@@ -141,6 +145,7 @@ const App = () => {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </RealtimeSyncProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

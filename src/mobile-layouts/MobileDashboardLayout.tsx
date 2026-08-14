@@ -12,6 +12,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import BottomNavigation from "@/mobile-navigation/BottomNavigation";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 interface MobileDashboardLayoutProps {
   children: ReactNode;
@@ -22,6 +23,24 @@ export const MobileDashboardLayout: React.FC<MobileDashboardLayoutProps> = ({ ch
   const [unreadCount, setUnreadCount] = useState(0);
   const { isOnline, wasOffline } = useNetworkStatus();
   const { syncNow } = useOfflineSync();
+  const { syncStatus } = useRealtimeSync();
+
+  const renderSyncBadge = () => {
+    switch (syncStatus) {
+      case "synced":
+        return <span className="text-[9px] text-emerald-500 font-bold flex items-center gap-1">● Synced</span>;
+      case "syncing":
+        return <span className="text-[9px] text-teal-400 font-bold flex items-center gap-1 animate-pulse">↻ Syncing...</span>;
+      case "offline":
+        return <span className="text-[9px] text-amber-500 font-bold flex items-center gap-1">▲ Offline</span>;
+      case "reconnecting":
+        return <span className="text-[9px] text-amber-400 font-bold flex items-center gap-1 animate-pulse">○ Reconnecting...</span>;
+      case "connection_restored":
+        return <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-1 animate-bounce">● Restored</span>;
+      default:
+        return null;
+    }
+  };
 
   useEffect(() => {
     generateDailyHealthTip();
@@ -51,9 +70,12 @@ export const MobileDashboardLayout: React.FC<MobileDashboardLayoutProps> = ({ ch
           <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center shadow-sm">
             <Pill className="h-4.5 w-4.5 text-primary-foreground" />
           </div>
-          <span className="font-bold text-base text-foreground tracking-tight">
-            MediBudget
-          </span>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm text-foreground tracking-tight leading-none">
+              MediBudget
+            </span>
+            <div className="mt-0.5">{renderSyncBadge()}</div>
+          </div>
         </Link>
 
         <div className="flex items-center gap-2">

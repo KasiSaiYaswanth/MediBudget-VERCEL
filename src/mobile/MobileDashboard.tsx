@@ -10,6 +10,8 @@ import {
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
+import { reconstructEstimation } from "@/lib/reconstructEstimation";
 
 interface SavedEstimation {
   id: string;
@@ -21,8 +23,8 @@ interface SavedEstimation {
 }
 
 export const MobileDashboard = () => {
+  const { estimations } = useRealtimeSync();
   const [userName, setUserName] = useState("there");
-  const [recentEstimations, setRecentEstimations] = useState<SavedEstimation[]>([]);
   const [activeTip, setActiveTip] = useState(0);
 
   const healthTips = [
@@ -38,24 +40,17 @@ export const MobileDashboard = () => {
       if (name) setUserName(name.split(" ")[0]);
     });
 
-    try {
-      const history = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-      setRecentEstimations(history.slice(0, 3));
-    } catch {
-      setRecentEstimations([]);
-    }
-
     const interval = setInterval(() => {
       setActiveTip((prev) => (prev + 1) % healthTips.length);
     }, 6000);
     return () => clearInterval(interval);
   }, []);
 
-  const totalEstimations = recentEstimations.length > 0
-    ? JSON.parse(localStorage.getItem("estimationHistory") || "[]").length
-    : 0;
+  const recentEstimations = estimations.map(reconstructEstimation).slice(0, 3);
 
-  const totalSpent = recentEstimations.reduce((sum, e) => sum + (e.total || 0), 0);
+  const totalEstimations = estimations.length;
+
+  const totalSpent = estimations.reduce((sum, e) => sum + (Number(e.estimated_cost) || 0), 0);
 
   const quickActions = [
     {

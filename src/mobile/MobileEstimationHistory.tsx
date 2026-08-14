@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 import {
   ChevronLeft,
   History as HistoryIcon,
@@ -50,14 +51,20 @@ interface SymptomLog {
 }
 
 export const MobileEstimationHistory = () => {
+  const {
+    estimations,
+    symptoms,
+    updateEstimation,
+    deleteEstimation,
+    updateSymptom,
+    deleteSymptom,
+    refreshData,
+    syncStatus
+  } = useRealtimeSync();
+
   const [activeTab, setActiveTab] = useState<"estimations" | "symptoms">("estimations");
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Data states
-  const [costLogs, setCostLogs] = useState<CostLog[]>([]);
-  const [symptomLogs, setSymptomLogs] = useState<SymptomLog[]>([]);
 
   // Detailed sheet states
   const [selectedCost, setSelectedCost] = useState<CostLog | null>(null);
@@ -68,142 +75,52 @@ export const MobileEstimationHistory = () => {
   const [editTitle, setEditTitle] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
-  // Load all history logs
-  const fetchLogs = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    else setRefreshing(true);
+  // Map to matching structures
+  const costLogs: CostLog[] = estimations.map((item: any) => ({
+    id: item.id,
+    created_at: item.created_at,
+    condition: item.condition,
+    city: item.city,
+    hospital_type: item.hospital_type,
+    estimated_cost: Number(item.estimated_cost) || 0,
+    insurance_applied: item.insurance_applied,
+    insurance_coverage: Number(item.insurance_coverage) || 0
+  }));
 
+  const symptomLogs: SymptomLog[] = symptoms.map((item: any) => ({
+    id: item.id,
+    created_at: item.created_at,
+    symptom: item.symptom,
+    predicted_condition: item.predicted_condition,
+    confidence_score: Number(item.confidence_score) || 0.85,
+    city: item.city || "Unknown"
+  }));
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Fallback to localStorage if guest user
-        const localEstimations = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-        const localSymptoms = JSON.parse(localStorage.getItem("symptomHistory") || "[]");
-
-        // Adapt local schema structures to display properly
-        setCostLogs(localEstimations.map((item: any) => ({
-          id: item.id || Date.now().toString(),
-          created_at: item.date || new Date().toISOString(),
-          condition: item.condition,
-          city: item.city,
-          hospital_type: item.hospitalType,
-          estimated_cost: item.total || 0,
-          insurance_applied: item.condition?.toLowerCase().includes("insurance"),
-          insurance_coverage: item.tests || 0 // mapped coverage in local storage format
-        })));
-
-        setSymptomLogs(localSymptoms.map((item: any) => ({
-          id: item.id || Date.now().toString(),
-          created_at: item.date || new Date().toISOString(),
-          symptom: item.symptoms || item.symptom || "Symptom check",
-          predicted_condition: item.analysis || item.condition || "Potential issue",
-          confidence_score: item.confidence || 0.85,
-          city: item.city || "Unknown"
-        })));
-
-        if (isSilent) toast.success("Offline storage synchronized");
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      // Fetch Estimations from Supabase
-      const { data: costData, error: costError } = await supabase
-        .from("cost_estimation_logs")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (costError) throw costError;
-      setCostLogs(costData || []);
-
-      // Fetch Symptom searches from Supabase
-      const { data: symptomData, error: symptomError } = await supabase
-        .from("symptom_searches")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (symptomError) throw symptomError;
-      setSymptomLogs(symptomData || []);
-
-      if (isSilent) toast.success("History database updated");
-    } catch (err: any) {
-      console.error("Failed to query history logs:", err);
-      if (isSilent) {
-        toast.error("Network issue. Loaded local history instead.");
-      }
-
-      // Pull from local storage as emergency backup
-      const localEst = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-      setCostLogs(localEst.map((item: any) => ({
-        id: item.id,
-        created_at: item.date || new Date().toISOString(),
-        condition: item.condition,
-        city: item.city,
-        hospital_type: item.hospitalType,
-        estimated_cost: item.total || 0,
-        insurance_applied: item.condition?.toLowerCase().includes("insurance"),
-        insurance_coverage: item.tests || 0
-      })));
+      await refreshData();
+      toast.success("History re-synced with cloud");
+    } catch {
+      toast.error("Sync failed");
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  };
 
   // DELETE operation
   const handleDelete = async (id: string, type: "cost" | "symptom", e: React.MouseEvent) => {
     e.stopPropagation(); // prevent opening details Sheet
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Fallback local storage remove
-        if (type === "cost") {
-          const updated = costLogs.filter((item) => item.id !== id);
-          setCostLogs(updated);
-          localStorage.setItem("estimationHistory", JSON.stringify(updated.map(c => ({
-            id: c.id,
-            date: c.created_at,
-            condition: c.condition,
-            city: c.city,
-            hospitalType: c.hospital_type,
-            total: c.estimated_cost
-          }))));
-        } else {
-          const updated = symptomLogs.filter((item) => item.id !== id);
-          setSymptomLogs(updated);
-          localStorage.setItem("symptomHistory", JSON.stringify(updated.map(s => ({
-            id: s.id,
-            date: s.created_at,
-            symptoms: s.symptom,
-            analysis: s.predicted_condition,
-            confidence: s.confidence_score
-          }))));
-        }
-        toast.success("Entry removed from storage");
-        return;
-      }
-
-      // Supabase Delete
       if (type === "cost") {
-        const { error } = await supabase.from("cost_estimation_logs").delete().eq("id", id);
-        if (error) throw error;
-        setCostLogs(costLogs.filter((item) => item.id !== id));
+        await deleteEstimation(id);
       } else {
-        const { error } = await supabase.from("symptom_searches").delete().eq("id", id);
-        if (error) throw error;
-        setSymptomLogs(symptomLogs.filter((item) => item.id !== id));
+        await deleteSymptom(id);
       }
-
-      toast.success("Entry permanently purged");
+      toast.success("Entry removed");
     } catch (err: any) {
-      toast.error("Failed to delete: " + err.message);
+      toast.error("Failed to delete entry: " + err.message);
     }
   };
 
@@ -219,57 +136,12 @@ export const MobileEstimationHistory = () => {
     setEditLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Fallback Local Update
-        if (editItem.type === "cost") {
-          const updated = costLogs.map((item) => item.id === editItem.id ? { ...item, condition: editTitle } : item);
-          setCostLogs(updated);
-          localStorage.setItem("estimationHistory", JSON.stringify(updated.map(c => ({
-            id: c.id,
-            date: c.created_at,
-            condition: c.condition,
-            city: c.city,
-            hospitalType: c.hospital_type,
-            total: c.estimated_cost
-          }))));
-        } else {
-          const updated = symptomLogs.map((item) => item.id === editItem.id ? { ...item, symptom: editTitle } : item);
-          setSymptomLogs(updated);
-          localStorage.setItem("symptomHistory", JSON.stringify(updated.map(s => ({
-            id: s.id,
-            date: s.created_at,
-            symptoms: s.symptom,
-            analysis: s.predicted_condition,
-            confidence: s.confidence_score
-          }))));
-        }
-        toast.success("Entry renamed locally");
-        setEditItem(null);
-        return;
-      }
-
-      // Supabase Update
       if (editItem.type === "cost") {
-        const { error } = await supabase
-          .from("cost_estimation_logs")
-          .update({ condition: editTitle })
-          .eq("id", editItem.id);
-        if (error) throw error;
-
-        setCostLogs(costLogs.map((c) => c.id === editItem.id ? { ...c, condition: editTitle } : c));
+        await updateEstimation(editItem.id, editTitle);
       } else {
-        const { error } = await supabase
-          .from("symptom_searches")
-          .update({ symptom: editTitle })
-          .eq("id", editItem.id);
-        if (error) throw error;
-
-        setSymptomLogs(symptomLogs.map((s) => s.id === editItem.id ? { ...s, symptom: editTitle } : s));
+        await updateSymptom(editItem.id, editTitle);
       }
-
-      toast.success("Entry updated on server");
+      toast.success("Entry renamed");
       setEditItem(null);
     } catch (err: any) {
       toast.error("Failed to rename entry: " + err.message);

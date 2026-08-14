@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import MobileDashboardLayout from "@/mobile-layouts/MobileDashboardLayout";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -73,6 +76,7 @@ function extractConditionFromMessages(messages: Message[]): { condition: string;
 }
 
 export const MobileSymptomChat = () => {
+  const { addSymptom } = useRealtimeSync();
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,10 +94,22 @@ export const MobileSymptomChat = () => {
   ];
 
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
+    // Setup native listeners if on Capacitor
+    if (Capacitor.isNativePlatform()) {
       setSpeechSupported(true);
-      const recognition = new SpeechRecognition();
+      SpeechRecognition.addListener('partialResults', (data: any) => {
+        if (data.matches && data.matches.length > 0) {
+          setInputText(data.matches[0]);
+        }
+      });
+      return;
+    }
+
+    // Web Fallback Setup
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRec) {
+      setSpeechSupported(true);
+      const recognition = new SpeechRec();
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-IN';
@@ -120,11 +136,55 @@ export const MobileSymptomChat = () => {
     }
   }, []);
 
-  const toggleVoice = useCallback(() => {
-    if (!recognitionRef.current) {
-      toast.error('Voice input is not supported in this browser.');
+  const toggleVoice = useCallback(async () => {
+    if (!speechSupported) {
+      toast.error('Voice input is not supported on this device.');
       return;
     }
+
+    if (Capacitor.isNativePlatform()) {
+      if (isListening) {
+        await SpeechRecognition.stop();
+        setIsListening(false);
+      } else {
+        try {
+          const { speechRecognition } = await SpeechRecognition.checkPermissions();
+          if (speechRecognition !== 'granted') {
+            const { speechRecognition: req } = await SpeechRecognition.requestPermissions();
+            if (req !== 'granted') {
+              toast.error('Microphone permission required.');
+              return;
+            }
+          }
+          
+          setInputText('');
+          setIsListening(true);
+          toast.info('🎤 Speak symptoms now...');
+          await SpeechRecognition.start({
+            language: "en-IN",
+            maxResults: 1,
+            prompt: "Speak your symptoms...",
+            partialResults: true,
+            popup: false,
+          });
+          
+          // Native won't auto-stop without a popup on some Android versions, so we set a timeout
+          setTimeout(() => {
+            if (isListening) {
+               SpeechRecognition.stop();
+               setIsListening(false);
+            }
+          }, 8000);
+        } catch (error) {
+          setIsListening(false);
+          toast.error('Could not start microphone.');
+        }
+      }
+      return;
+    }
+
+    // Web Fallback
+    if (!recognitionRef.current) return;
     if (isListening) {
       recognitionRef.current.stop();
     } else {
@@ -132,7 +192,7 @@ export const MobileSymptomChat = () => {
       recognitionRef.current.start();
       toast.info('🎤 Speak symptoms now...');
     }
-  }, [isListening]);
+  }, [isListening, speechSupported]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -212,6 +272,15 @@ export const MobileSymptomChat = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+
+    // Persist the first message of the conversation as a symptom scan record
+    if (messages.length === 0) {
+      addSymptom({
+        symptom: textToSend,
+        predicted_condition: "Pending AI analysis",
+        confidence_score: 0.85,
+      }).catch((err) => console.warn("[SYNC] Mobile symptom save failed:", err));
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Download, Smartphone, ShieldCheck, ArrowRight, Info, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const DownloadAndroidSection = () => {
   const [downloaded, setDownloaded] = useState(false);
+  const navigate = useNavigate();
 
   const handleDownload = () => {
     setDownloaded(true);
-    // Direct Google Drive APK download link
-    window.open("https://drive.google.com/uc?export=download&id=1EDs5bpe3QiTo05--8nyDRr2UiU0BURpT", "_blank", "noopener,noreferrer");
+    // Navigate to the install page for up-to-date APK instructions
+    navigate("/install");
   };
 
   return (

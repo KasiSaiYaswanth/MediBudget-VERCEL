@@ -11,6 +11,7 @@ import CostResults from "@/components/estimation/CostResults";
 import NearbyHospitals from "@/components/estimation/NearbyHospitals";
 import ConditionAnalyzer from "@/components/estimation/ConditionAnalyzer";
 import { matchCityToList } from "@/lib/locationService";
+import { useRealtimeSync } from "@/context/RealtimeSyncContext";
 
 export const cities = [
   // Andhra Pradesh
@@ -208,6 +209,7 @@ export interface EstimationResult {
 }
 
 const CostEstimation = () => {
+  const { addEstimation } = useRealtimeSync();
   const location = useLocation();
   const navState = location.state as { chatbotCondition?: string; description?: string } | null;
 
@@ -264,24 +266,15 @@ const CostEstimation = () => {
       recommendedMedicines: cond.recommendedMedicines,
     });
 
-    // Save to localStorage for history
-    const savedEstimation = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
+    // Save via unified real-time sync provider
+    addEstimation({
       condition: cond.label,
       city: `${c.label}, ${c.state}`,
-      hospitalType: h.label,
-      consultation,
-      tests,
-      medicines,
-      treatment,
-      total,
-      cityMultiplier: cm,
-      hospitalMultiplier: hm,
-    };
-    const existing = JSON.parse(localStorage.getItem("estimationHistory") || "[]");
-    existing.unshift(savedEstimation);
-    localStorage.setItem("estimationHistory", JSON.stringify(existing.slice(0, 50)));
+      hospital_type: h.label,
+      estimated_cost: total,
+    }).catch((err) => {
+      console.warn("Failed to sync estimation in real-time, saved locally.", err);
+    });
 
     setStep(4);
   };
