@@ -78,12 +78,12 @@ export const MobileLogin = () => {
       return;
     }
     setLoading(true);
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
-
       if (newAttempts >= MAX_ATTEMPTS) {
         const lockTime = Date.now() + LOCKOUT_DURATION;
         setLockedUntil(lockTime);
@@ -96,34 +96,33 @@ export const MobileLogin = () => {
       return;
     }
 
+    // Reset rate limit on success
     setFailedAttempts(0);
     setLockedUntil(0);
     setLoginState(0, 0);
 
-    const { data: factorsData } = await supabase.auth.mfa.listFactors();
-    const hasVerifiedTotp = factorsData?.totp?.some((f) => f.status === "verified");
+    // Check MFA
+    try {
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const hasVerifiedTotp = factorsData?.totp?.some((f) => f.status === "verified");
+      if (hasVerifiedTotp) {
+        setLoading(false);
+        navigate("/mfa-verify", { replace: true });
+        return;
+      }
+    } catch {}
 
-    if (hasVerifiedTotp) {
-      setLoading(false);
-      navigate("/mfa-verify");
-      return;
-    }
-
+    // Check admin role
     let isAdmin = false;
     try {
       isAdmin = await checkIsAdmin();
     } catch (adminError) {
       console.warn("Admin check failed, defaulting to standard user", adminError);
     }
-    setLoading(false);
 
-    if (isAdmin) {
-      toast.success("Welcome, Admin!");
-      navigate("/admin");
-    } else {
-      toast.success("Welcome back!");
-      navigate("/dashboard");
-    }
+    setLoading(false);
+    toast.success(isAdmin ? "Welcome, Admin!" : "Welcome back!");
+    navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
   };
 
   const handleGoogleLogin = async () => {
