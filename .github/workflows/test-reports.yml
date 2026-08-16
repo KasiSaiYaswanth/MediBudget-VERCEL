@@ -1,0 +1,38 @@
+name: Quality Assurance Reports
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  publish-reports:
+    name: Publish 300 Test Cases Reports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Publish Selenium E2E Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium_E2E_Test_Report
+          path: test-reports/Selenium_E2E_300_TestCases_Analysis_Report.xlsx
+
+      - name: Publish Appium Mobile E2E Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium_Mobile_E2E_Test_Report
+          path: test-reports/Appium_Mobile_E2E_300_TestCases_Analysis_Report.xlsx
+
+      - name: Publish Vulnerability & Security Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vulnerability_Security_Test_Report
+          path: test-reports/Vulnerability_Security_300_TestCases_Analysis_Report.xlsx
+
+      - name: Publish Load & Performance Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load_Performance_Test_Report
+          path: test-reports/Load_Performance_300_TestCases_Analysis_Report.xlsx
