@@ -31,6 +31,13 @@ jobs:
           name: Appium_Mobile_E2E_Test_Report
           path: test-reports/Appium_Mobile_E2E_300_TestCases_Analysis_Report.xlsx
 
+      - name: Publish Detailed Appium Mobile E2E Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium_Mobile_E2E_Detailed_Test_Report
+          path: appium-tests/Appium_Mobile_E2E_Detailed_Test_Report.xlsx
+
+
       - name: Publish Vulnerability & Security Test Report
         uses: actions/upload-artifact@v4
         with:
