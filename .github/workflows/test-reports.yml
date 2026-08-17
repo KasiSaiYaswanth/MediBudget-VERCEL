@@ -19,6 +19,12 @@ jobs:
           name: Selenium_E2E_Test_Report
           path: test-reports/Selenium_E2E_300_TestCases_Analysis_Report.xlsx
 
+      - name: Publish Detailed Selenium E2E Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium_E2E_Detailed_Test_Report
+          path: selenium-tests/Selenium_E2E_Detailed_Test_Report.xlsx
+
       - name: Publish Appium Mobile E2E Test Report
         uses: actions/upload-artifact@v4
         with:
