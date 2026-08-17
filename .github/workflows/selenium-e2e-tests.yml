@@ -1,4 +1,4 @@
-name: Quality Assurance Reports
+name: Selenium E2E Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish-reports:
-    name: Publish 300 Test Cases Reports
+    name: Publish E2E Test Reports
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -18,34 +18,21 @@ jobs:
         with:
           name: Selenium_E2E_Test_Report
           path: test-reports/Selenium_E2E_300_TestCases_Analysis_Report.xlsx
-
+          
       - name: Publish Detailed Selenium E2E Test Report
         uses: actions/upload-artifact@v4
         with:
           name: Selenium_E2E_Detailed_Test_Report
           path: selenium-tests/Selenium_E2E_Detailed_Test_Report.xlsx
-
+          
       - name: Publish Appium Mobile E2E Test Report
         uses: actions/upload-artifact@v4
         with:
           name: Appium_Mobile_E2E_Test_Report
           path: test-reports/Appium_Mobile_E2E_300_TestCases_Analysis_Report.xlsx
-
+          
       - name: Publish Detailed Appium Mobile E2E Test Report
         uses: actions/upload-artifact@v4
         with:
           name: Appium_Mobile_E2E_Detailed_Test_Report
           path: appium-tests/Appium_Mobile_E2E_Detailed_Test_Report.xlsx
-
-
-      - name: Publish Vulnerability & Security Test Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: Vulnerability_Security_Test_Report
-          path: test-reports/Vulnerability_Security_300_TestCases_Analysis_Report.xlsx
-
-      - name: Publish Load & Performance Test Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: Load_Performance_Test_Report
-          path: test-reports/Load_Performance_300_TestCases_Analysis_Report.xlsx

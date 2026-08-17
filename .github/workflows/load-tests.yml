@@ -1,0 +1,20 @@
+name: Load Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  publish-reports:
+    name: Publish Load Test Reports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Publish Load & Performance Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load_Performance_Test_Report
+          path: test-reports/Load_Performance_300_TestCases_Analysis_Report.xlsx
